@@ -92,9 +92,18 @@ def user_logout(request):
     return redirect('/')
 
 
+def can_manage_articles(user):
+    """检查用户是否有管理文章的权限"""
+    return user.is_authenticated and (user.is_superuser or user.groups.filter(name__in=['Editors', 'Moderators']).exists())
+
+
 @login_required
 def create_article(request):
     """创建文章"""
+    # 检查权限
+    if not can_manage_articles(request.user):
+        messages.error(request, '您没有创建文章的权限，请先加入 Editors 或 Moderators 用户组')
+        return redirect('/accounts/profile/')
     if request.method == 'POST':
         title = request.POST.get('title')
         intro = request.POST.get('intro')
@@ -282,6 +291,34 @@ def user_profile(request):
         owner=request.user
     ).specific()
     
+    # 获取用户所属组
+    user_groups = request.user.groups.all()
+    
     return render(request, 'home/profile.html', {
-        'user_articles': user_articles
+        'user_articles': user_articles,
+        'user_groups': user_groups
     })
+
+
+@login_required
+def join_group(request, group_name):
+    """用户申请加入用户组"""
+    from django.contrib.auth.models import Group
+    
+    # 只有特定组可以申请加入
+    allowed_groups = ['Editors', 'Moderators']
+    if group_name not in allowed_groups:
+        messages.error(request, '无效的用户组')
+        return redirect('/accounts/profile/')
+    
+    try:
+        group = Group.objects.get(name=group_name)
+        if request.user.groups.filter(name=group_name).exists():
+            messages.info(request, f'您已经是 {group_name} 组的成员')
+        else:
+            request.user.groups.add(group)
+            messages.success(request, f'已成功加入 {group_name} 组！')
+    except Group.DoesNotExist:
+        messages.error(request, '用户组不存在')
+    
+    return redirect('/accounts/profile/')

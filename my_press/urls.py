@@ -20,6 +20,7 @@ urlpatterns = [
     path('accounts/register/', home_views.user_register, name='account_register'),
     path('accounts/logout/', home_views.user_logout, name='account_logout'),
     path('accounts/profile/', home_views.user_profile, name='account_profile'),
+    path('accounts/join/<str:group_name>/', home_views.join_group, name='join_group'),
     
     # 前台文章管理 URLs
     path('article/create/', home_views.create_article, name='create_article'),
