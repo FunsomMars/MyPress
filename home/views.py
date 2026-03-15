@@ -11,7 +11,16 @@ from .models import BlogPage, BlogIndexPage, Comment
 
 def index(request):
     """首页"""
-    return render(request, 'home/index.html')
+    from home.models import BlogIndexPage
+    
+    # 获取博客索引页的文章
+    blog_index = BlogIndexPage.objects.first()
+    if blog_index:
+        blog_posts = blog_index.get_children().specific().live()
+    else:
+        blog_posts = []
+    
+    return render(request, 'home/index.html', {'blog_posts': blog_posts})
 
 
 def user_login(request):

@@ -9,6 +9,7 @@ from wagtail.admin.panels import FieldPanel
 
 class HomePage(Page):
     intro = RichTextField(blank=True, help_text="Introduction text for the homepage")
+    template = 'home/index.html'
     
     content_panels = Page.content_panels + [
         FieldPanel('intro'),
