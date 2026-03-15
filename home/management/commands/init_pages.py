@@ -89,6 +89,7 @@ class Command(BaseCommand):
         # 4. 导入文章（如果文章不存在）
         import json
         import os
+        from datetime import datetime
         posts_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'data', 'posts.json')
         
         if os.path.exists(posts_file):
@@ -101,12 +102,28 @@ class Command(BaseCommand):
                 for post in posts_data:
                     slug = post.get('slug', '')
                     if slug and slug not in existing_slugs:
+                        # 处理日期格式
+                        date_value = post.get('date')
+                        if date_value:
+                            try:
+                                # 尝试解析日期
+                                if isinstance(date_value, str):
+                                    # 去除时间部分，只保留日期
+                                    date_str = date_value.split(' ')[0]
+                                    article_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                                else:
+                                    article_date = date_value
+                            except:
+                                article_date = timezone.now().date()
+                        else:
+                            article_date = timezone.now().date()
+                        
                         blog_page = BlogPage(
                             title=post.get('title', 'Untitled'),
                             slug=slug,
                             intro=post.get('intro', post.get('title', '')[:100]),
                             body=post.get('body', ''),
-                            date=post.get('date') or timezone.now().date()
+                            date=article_date
                         )
                         blog_index.add_child(instance=blog_page)
                         
