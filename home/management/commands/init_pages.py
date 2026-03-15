@@ -122,7 +122,7 @@ class Command(BaseCommand):
                             title=post.get('title', 'Untitled'),
                             slug=slug,
                             intro=post.get('intro', post.get('title', '')[:100]),
-                            body=post.get('body', ''),
+                            body=post.get('content', ''),
                             date=article_date
                         )
                         blog_index.add_child(instance=blog_page)
