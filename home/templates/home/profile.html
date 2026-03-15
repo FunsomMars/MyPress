@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <h2>个人中心</h2>
+        <p>欢迎, <strong>{{ user.username }}</strong>!</p>
+        <p>邮箱: {{ user.email }}</p>
+    </div>
+    
+    <div class="profile-content">
+        <h3>我的文章</h3>
+        
+        {% if user_articles %}
+        <div class="article-list">
+            {% for article in user_articles %}
+            <div class="article-item">
+                <h4><a href="/blog/{{ article.slug }}/">{{ article.title }}</a></h4>
+                <div class="article-actions">
+                    <a href="{% url 'edit_article' article.slug %}" class="btn btn-sm">编辑</a>
+                    <a href="{% url 'delete_article' article.slug %}" class="btn btn-sm btn-danger">删除</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>您还没有创建任何文章。</p>
+        {% endif %}
+        
+        <div class="profile-actions">
+            <a href="{% url 'create_article' %}" class="btn btn-primary">创建新文章</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

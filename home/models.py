@@ -1,4 +1,6 @@
 from django.db import models
+from django.contrib.auth import get_user_model
+from django.conf import settings
 
 from wagtail.models import Page
 from wagtail.fields import RichTextField
@@ -54,6 +56,50 @@ class BlogPage(Page):
     ]
     
     template = 'home/blog_page.html'
+    
+    def get_context(self, request, *args, **kwargs):
+        """获取博客文章上下文"""
+        context = super().get_context(request, *args, **kwargs)
+        context['comments'] = self.get_comments()
+        return context
+    
+    def get_comments(self):
+        """获取文章的评论"""
+        return self.comments.filter(is_approved=True).order_by('-created_at')
+    
+    def get_comment_count(self):
+        """获取评论数量"""
+        return self.comments.filter(is_approved=True).count()
+
+
+class Comment(models.Model):
+    """文章评论模型"""
+    blog_page = models.ForeignKey(
+        BlogPage, 
+        on_delete=models.CASCADE, 
+        related_name='comments'
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='comments'
+    )
+    author_name = models.CharField("用户名", max_length=100)
+    author_email = models.EmailField("邮箱")
+    content = models.TextField("评论内容")
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    updated_at = models.DateTimeField("更新时间", auto_now=True)
+    is_approved = models.BooleanField("是否通过审核", default=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "评论"
+        verbose_name_plural = "评论"
+    
+    def __str__(self):
+        return f"{self.author_name} - {self.blog_page.title[:20]}"
 
 
 class CustomPage(Page):

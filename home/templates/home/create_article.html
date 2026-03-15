@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="editor-container">
+    <div class="editor-box">
+        <h2>创建新文章</h2>
+        
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="post" action="{% url 'create_article' %}">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="title">文章标题</label>
+                <input type="text" id="title" name="title" required autofocus>
+            </div>
+            
+            <div class="form-group">
+                <label for="intro">文章摘要</label>
+                <textarea id="intro" name="intro" rows="3" placeholder="可选，默认为标题前250个字符"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="date">发布日期</label>
+                <input type="date" id="date" name="date" value="{{ today }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="body">文章内容</label>
+                <textarea id="body" name="body" rows="20" class="rich-editor" placeholder="在这里撰写您的文章..."></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">发布文章</button>
+                <a href="/" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
