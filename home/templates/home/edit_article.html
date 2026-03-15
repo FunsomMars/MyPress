@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
 <div class="editor-container">
     <div class="editor-box">
         <h2>编辑文章</h2>
@@ -13,7 +17,7 @@
         </div>
         {% endif %}
         
-        <form method="post" action="{% url 'edit_article' article.slug %}">
+        <form method="post" action="{% url 'edit_article' article.slug %}" id="articleForm">
             {% csrf_token %}
             
             <div class="form-group">
@@ -32,15 +36,161 @@
             </div>
             
             <div class="form-group">
-                <label for="body">文章内容</label>
-                <textarea id="body" name="body" rows="20" class="rich-editor">{{ article.body }}</textarea>
+                <label>文章内容</label>
+                <div class="editor-toggle">
+                    <button type="button" class="btn btn-sm" id="btnRichText" onclick="switchEditor('richtext')">富文本</button>
+                    <button type="button" class="btn btn-sm" id="btnMarkdown" onclick="switchEditor('markdown')">Markdown</button>
+                </div>
+                
+                <!-- 富文本编辑器容器 -->
+                <div id="quill-editor" style="height: 400px;"></div>
+                
+                <!-- Markdown编辑器容器 -->
+                <div id="markdown-editor" style="display: none;">
+                    <textarea id="markdown-body" name="body_markdown" rows="20" class="markdown-textarea" placeholder="使用Markdown语法撰写文章...
+
+# 标题1
+## 标题2
+
+**粗体** *斜体*
+
+- 列表项1
+- 列表项2
+
+[链接文本](URL)
+
+```代码块```
+"></textarea>
+                    <div class="markdown-preview" id="markdown-preview" style="display: none; margin-top: 20px; padding: 20px; border: 1px solid #ddd; background: #f9f9f9;"></div>
+                </div>
+                
+                <!-- 隐藏字段用于存储最终内容 -->
+                <input type="hidden" id="body" name="body" value="{{ article.body }}">
             </div>
             
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">保存修改</button>
+                <button type="submit" class="btn btn-primary" onclick="return submitForm()">保存修改</button>
                 <a href="/blog/{{ article.slug }}/" class="btn btn-secondary">取消</a>
             </div>
         </form>
     </div>
 </div>
+
+<style>
+.editor-toggle { margin-bottom: 10px; }
+.editor-toggle .btn { margin-right: 5px; }
+.editor-toggle .btn.active { background: #667eea; color: white; }
+.markdown-textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; line-height: 1.6; }
+.markdown-preview h1, .markdown-preview h2, .markdown-preview h3 { margin-top: 20px; margin-bottom: 10px; }
+.markdown-preview p { margin-bottom: 15px; }
+.markdown-preview code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+.markdown-preview pre { background: #f0f0f0; padding: 15px; border-radius: 5px; overflow-x: auto; }
+.markdown-preview ul, .markdown-preview ol { margin-left: 20px; margin-bottom: 15px; }
+.markdown-preview img { max-width: 100%; }
+</style>
+
+<script>
+// 检测内容是否为Markdown格式
+function isMarkdownContent(html) {
+    // 检查是否包含常见的Markdown标记
+    var markdownIndicators = [
+        /^#{1,6}\s/m,           // 标题
+        /^\s*[-*+]\s/m,         // 无序列表
+        /^\s*\d+\.\s/m,         // 有序列表
+        /\*\*[^*]+\*\*/,         // 粗体
+        /\*[^*]+\*/,             // 斜体
+        /```[\s\S]*?```/,        // 代码块
+        /`[^`]+`/,               // 行内代码
+        /\[.+\]\(.+\)/,          // 链接
+    ];
+    
+    // 如果HTML包含这些标记，可能是从Markdown转换来的
+    for (var i = 0; i < markdownIndicators.length; i++) {
+        if (markdownIndicators[i].test(html)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// 获取已有的HTML内容并尝试检测格式
+var existingBody = "{{ article.body|escapejs }}";
+var currentMode = isMarkdownContent(existingBody) ? 'markdown' : 'richtext';
+
+// 初始化Quill编辑器
+var quill = new Quill('#quill-editor', {
+    theme: 'snow',
+    placeholder: '在这里撰写您的文章...',
+    modules: {
+        toolbar: [
+            [{ 'header': [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'color': [] }, { 'background': [] }],
+            ['link', 'image'],
+            ['clean']
+        ]
+    }
+});
+
+// 如果是纯文本/HTML模式，加载内容
+if (!currentMode) {
+    quill.root.innerHTML = existingBody;
+} else {
+    // 如果是Markdown模式，需要反转义HTML为Markdown（简化处理）
+    // 这里直接使用原始HTML作为内容，用户可以选择切换到富文本模式查看
+    document.getElementById('markdown-body').value = existingBody;
+}
+
+function switchEditor(mode) {
+    currentMode = mode;
+    
+    if (mode === 'richtext') {
+        document.getElementById('quill-editor').style.display = 'block';
+        document.getElementById('markdown-editor').style.display = 'none';
+        document.getElementById('btnRichText').classList.add('active');
+        document.getElementById('btnMarkdown').classList.remove('active');
+    } else {
+        document.getElementById('quill-editor').style.display = 'none';
+        document.getElementById('markdown-editor').style.display = 'block';
+        document.getElementById('btnRichText').classList.remove('active');
+        document.getElementById('btnMarkdown').classList.add('active');
+    }
+}
+
+function submitForm() {
+    var bodyField = document.getElementById('body');
+    
+    if (currentMode === 'richtext') {
+        // 从Quill获取HTML内容
+        bodyField.value = quill.root.innerHTML;
+    } else {
+        // 从Markdown转换
+        var markdownText = document.getElementById('markdown-body').value;
+        if (markdownText) {
+            bodyField.value = marked.parse(markdownText);
+        } else {
+            bodyField.value = '';
+        }
+    }
+    
+    return true;
+}
+
+// Markdown实时预览
+document.getElementById('markdown-body').addEventListener('input', function() {
+    var preview = document.getElementById('markdown-preview');
+    var text = this.value;
+    if (text) {
+        preview.innerHTML = marked.parse(text);
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+});
+
+// 初始化视图
+switchEditor(currentMode);
+</script>
 {% endblock %}
