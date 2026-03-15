@@ -1,16 +1,16 @@
 # MyPress - 轻量化博客系统
 
-基于 Django + Mezzanine CMS 构建的轻量化博客系统，支持 WordPress 数据无缝导入。
+基于 Django + Wagtail CMS 构建的轻量化博客系统，支持 WordPress 数据无缝导入。
 
 ## 功能特性
 
-- 📝 文章发布/编辑/支持Markdown
+- 📝 文章发布/编辑
 - 📂 分类目录管理
 - 🏷️ 标签系统
-- 👥 用户注册/登录
 - 💬 评论系统
 - 🔍 全文搜索
-- 📥 WordPress WXR 格式数据导入
+- 📥 WordPress 数据导入
+- 🖼️ 媒体文件管理
 - 🐳 Docker 一键部署
 
 ## 快速开始
@@ -74,19 +74,20 @@ docker-compose logs -f
 
 ## WordPress 数据导入
 
-### 方式一：管理命令导入
+### 导入脚本
+
+项目提供了以下导入脚本：
 
 ```bash
-# 在容器内执行
-docker-compose exec web python manage.py import_wordpress /path/to/wordpress.xml
+# 导入文章
+python manage.py import_wordpress wordpress.xml
 
-# 或者本地
-python manage.py import_wordpress wordpress.xml --author admin
+# 导入页面
+python import_pages.py
+
+# 导入图片和媒体
+python import_images.py
 ```
-
-### 方式二：Web界面上传导入
-
-访问 `http://localhost:8000/import/` 上传 WXR 文件
 
 ### WordPress 导出步骤
 
@@ -113,9 +114,6 @@ DB_PASSWORD=your-password
 DB_HOST=db
 DB_PORT=5432
 
-# Redis
-REDIS_URL=redis://redis:6379/0
-
 # 邮件配置
 EMAIL_HOST=smtp.example.com
 EMAIL_PORT=587
@@ -133,7 +131,6 @@ LANGUAGE_CODE=zh-hans
 
 - 前台首页: `http://localhost:8000`
 - 管理后台: `http://localhost:8000/admin/`
-- 导入页面: `http://localhost:8000/import/`
 
 ## 常用命令
 
@@ -156,9 +153,8 @@ docker-compose build --no-cache
 
 ## 技术栈
 
-- **后端**: Django 4.2 + Mezzanine CMS
-- **数据库**: PostgreSQL 15
-- **缓存**: Redis 7
+- **后端**: Django 5.x + Wagtail CMS
+- **数据库**: SQLite (开发) / PostgreSQL (生产)
 - **前端**: Bootstrap 5
 - **部署**: Docker + Docker Compose
 
@@ -171,20 +167,34 @@ my_press/
 ├── requirements.txt     # Python依赖
 ├── manage.py           # Django管理脚本
 ├── my_press/          # Django项目配置
-│   ├── settings.py
+│   ├── settings/       # 配置目录
 │   ├── urls.py
 │   └── wsgi.py
-├── blog/              # 博客应用
+├── home/              # 博客应用
 │   ├── models.py
-│   ├── admin.py
-│   └── management/commands/
-│       └── import_wordpress.py
+│   ├── templates/
+│   └── migrations/
+├── search/            # 搜索应用
 ├── templates/         # 模板文件
-├── static/          # 静态文件
-├── data/            # 数据目录
-└── deploy.sh        # 部署脚本
+├── media/            # 媒体文件（不上传git）
+├── data/             # 数据目录（不上传git）
+└── deploy.sh         # 部署脚本
 ```
+
+## 贡献指南
+
+欢迎提交 Pull Request！
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'Add some amazing feature'`)
+4. 推送分支 (`git push origin feature/amazing-feature`)
+5. 打开 Pull Request
 
 ## 许可证
 
-MIT License
+本项目仅供学习交流使用。
+
+**重要提示**：请勿将本项目用于商业用途或直接部署运营。博客内容、主题模板等可能涉及版权问题，使用前请确保拥有相应的授权。
+
+如需商业使用或部署，请联系原始作者获取授权。
