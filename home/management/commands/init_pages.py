@@ -5,7 +5,7 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from wagtail.models import Page
-from home.models import HomePage, BlogIndexPage, CustomPage
+from home.models import HomePage, BlogIndexPage, CustomPage, BlogPage
 
 
 class Command(BaseCommand):
