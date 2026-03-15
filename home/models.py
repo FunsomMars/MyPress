@@ -22,7 +22,9 @@ class HomePage(Page):
         from home.models import BlogIndexPage
         blog_index = BlogIndexPage.objects.first()
         if blog_index:
-            context['blog_posts'] = blog_index.get_children().specific().live()
+            # 使用list()强制评估查询集，确保模板能正确渲染
+            posts = list(blog_index.get_children().specific().live()[:6])
+            context['blog_posts'] = posts
         else:
             context['blog_posts'] = []
         return context
