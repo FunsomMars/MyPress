@@ -1,0 +1,82 @@
+# MyPress Docker Compose 配置
+# 用于x86_64架构的一键部署
+
+version: '3.8'
+
+services:
+  # Web应用
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mypress_web
+    restart: unless-stopped
+    ports:
+      - "${MYPRESS_PORT:-8000}:8000"
+    environment:
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost}
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - ./data/media:/app/media
+      - static_volume:/app/static
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  # PostgreSQL数据库
+  db:
+    image: postgres:15-alpine
+    container_name: mypress_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DB_NAME:-mypress}
+      - POSTGRES_USER=${DB_USER:-mypress}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-mypress}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: mypress_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # Nginx反向代理 (可选，生产环境推荐)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: mypress_nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - static_volume:/app/static:ro
+  #   depends_on:
+  #     - web
+
+volumes:
+  db_data:
+  redis_data:
+  static_volume:
+
+networks:
+  default:
+    name: mypress_network
