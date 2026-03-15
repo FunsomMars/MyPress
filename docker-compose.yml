@@ -20,7 +20,7 @@ services:
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost}
       - SECRET_KEY=${SECRET_KEY}
     volumes:
-      - ./data/media:/app/media
+      - ./data:/app/data
       - static_volume:/app/static
     depends_on:
       db:
