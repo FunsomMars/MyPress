@@ -58,7 +58,7 @@
 <div class="latest-posts">
     <h2>最新文章</h2>
     <div class="post-grid">
-        {% for post in blog_posts|slice:":6" %}
+        {% for post in blog_posts %}
         <div class="post-card">
             <div class="post-card-content">
                 <h3><a href="{% pageurl post %}">{{ post.title }}</a></h3>
