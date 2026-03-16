@@ -18,7 +18,18 @@ def index(request):
     # 获取博客索引页的文章
     blog_index = BlogIndexPage.objects.first()
     if blog_index:
-        blog_posts = blog_index.get_children().specific().live()
+        # 获取所有文章并按日期倒序排序
+        posts = list(blog_index.get_children().specific().live())
+        
+        def sort_key(post):
+            if hasattr(post, 'date') and post.date:
+                return post.date
+            elif hasattr(post, 'first_published_at') and post.first_published_at:
+                return post.first_published_at
+            return post.pk
+        
+        posts.sort(key=sort_key, reverse=True)
+        blog_posts = posts[:6]  # 取最新的6篇
     else:
         blog_posts = []
     
