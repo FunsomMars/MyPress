@@ -38,4 +38,18 @@
     
     <a href="/" class="back-link">← 返回首页</a>
 </div>
+
+<script>
+// Parse WordPress audio shortcode [audio mp3="..."]
+document.addEventListener('DOMContentLoaded', function() {
+    var content = document.querySelector('.page-content');
+    if (!content) return;
+    
+    var html = content.innerHTML;
+    var regex = /\[audio\s+mp3="([^"]+)"\s*(preload="([^"]+)")?\s*\][\/audio\]/g;
+    content.innerHTML = html.replace(regex, function(match, url, preloadAttr, preload) {
+        return '<audio controls preload="' + (preload || 'auto') + '" src="' + url + '" style="width:100%;margin:20px 0;"></audio>';
+    });
+});
+</script>
 {% endblock %}

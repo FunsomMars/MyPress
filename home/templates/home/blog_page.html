@@ -112,30 +112,29 @@
 </div>
 
 <script>
-document.getElementById('comment-form').addEventListener('submit', function(e) {
-    e.preventDefault();
+// Parse WordPress audio shortcode [audio mp3="..."]
+document.addEventListener('DOMContentLoaded', function() {
+    var content = document.querySelector('.article-content');
+    if (!content) return;
     
-    const form = this;
-    const formData = new FormData(form);
+    // Find all audio shortcode tags
+    var audioTags = content.querySelectorAll('[data-audio]');
+    audioTags.forEach(function(tag) {
+        var mp3Url = tag.getAttribute('data-audio');
+        var audio = document.createElement('audio');
+        audio.controls = true;
+        audio.preload = 'auto';
+        audio.src = mp3Url;
+        audio.style.width = '100%';
+        audio.style.margin = '20px 0';
+        tag.parentNode.replaceChild(audio, tag);
+    });
     
-    fetch(form.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // 刷新页面
-            location.reload();
-        } else {
-            alert(data.error || '评论失败，请重试');
-        }
-    })
-    .catch(error => {
-        alert('评论失败，请重试');
+    // Also handle legacy format: [audio mp3="url"][/audio]
+    var html = content.innerHTML;
+    var regex = /\[audio\s+mp3="([^"]+)"\s*(preload="([^"]+)")?\s*\][\/audio\]/g;
+    content.innerHTML = html.replace(regex, function(match, url, preloadAttr, preload) {
+        return '<audio controls preload="' + (preload || 'auto') + '" src="' + url + '" style="width:100%;margin:20px 0;"></audio>';
     });
 });
 </script>
