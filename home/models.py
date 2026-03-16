@@ -125,12 +125,12 @@ class BlogIndexPage(Page):
     ]
     
     def get_context(self, request, *args, **kwargs):
-        """获取博客文章列表上下文（分页）"""
+        """获取博客文章列表上下文（分页 + 归档筛选）"""
         context = super().get_context(request, *args, **kwargs)
         
-        # 获取分页参数
-        page = int(request.GET.get('page', 1))
-        per_page = 10
+        # 获取筛选参数
+        filter_year = request.GET.get('year')
+        filter_month = request.GET.get('month')
         
         # 获取所有文章
         all_posts = list(self.get_children().specific().live())
@@ -145,9 +145,22 @@ class BlogIndexPage(Page):
         
         all_posts.sort(key=sort_key, reverse=True)
         
+        # 如果有筛选参数，筛选文章
+        if filter_year:
+            year = int(filter_year)
+            if filter_month:
+                month = int(filter_month)
+                all_posts = [p for p in all_posts if self._get_post_date(p).year == year and self._get_post_date(p).month == month]
+            else:
+                all_posts = [p for p in all_posts if self._get_post_date(p).year == year]
+        
+        # 获取分页参数
+        page = int(request.GET.get('page', 1))
+        per_page = 10
+        
         # 计算总数
         total_count = len(all_posts)
-        total_pages = (total_count + per_page - 1) // per_page
+        total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
         
         # 确保页码有效
         if page < 1:
@@ -180,8 +193,42 @@ class BlogIndexPage(Page):
         context['page_range'] = page_range
         context['previous_page'] = page - 1 if page > 1 else 1
         context['next_page'] = page + 1 if page < total_pages else total_pages
+        context['filter_year'] = int(filter_year) if filter_year else None
+        context['filter_month'] = int(filter_month) if filter_month else None
+        
+        # 生成文章归档（年份 -> 月份 -> 文章列表）
+        # 重新获取所有文章用于归档（不包含筛选）
+        all_posts_full = list(self.get_children().specific().live())
+        all_posts_full.sort(key=sort_key, reverse=True)
+        
+        from collections import defaultdict
+        archive = defaultdict(lambda: defaultdict(list))
+        
+        for post in all_posts_full:
+            post_date = self._get_post_date(post)
+            if post_date:
+                year = post_date.year
+                month = post_date.month
+                archive[year][month].append(post)
+        
+        # 转换为有序字典
+        archive_sorted = {}
+        for year in sorted(archive.keys(), reverse=True):
+            archive_sorted[year] = {}
+            for month in sorted(archive[year].keys(), reverse=True):
+                archive_sorted[year][month] = archive[year][month]
+        
+        context['archive'] = archive_sorted
         
         return context
+    
+    def _get_post_date(self, post):
+        """获取文章发布日期"""
+        if hasattr(post, 'date') and post.date:
+            return post.date
+        elif hasattr(post, 'first_published_at') and post.first_published_at:
+            return post.first_published_at.date()
+        return None
 
 
 class BlogPage(Page):

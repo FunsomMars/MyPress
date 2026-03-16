@@ -8,7 +8,90 @@
 .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 .page-header { text-align: center; margin: 40px 0; }
 .page-header h1 { font-size: 2.5em; color: #333; }
-.posts-list { max-width: 800px; margin: 0 auto; }
+
+/* 博客布局：侧边栏 + 内容区 */
+.blog-layout { display: flex; gap: 30px; margin-top: 30px; }
+.blog-sidebar { width: 250px; flex-shrink: 0; }
+.blog-content { flex: 1; min-width: 0; }
+
+/* 时间轴样式 */
+.timeline {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 20px;
+    position: sticky;
+    top: 20px;
+}
+.timeline h3 { 
+    font-size: 1.1em; 
+    margin-bottom: 15px; 
+    color: #333;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+}
+.timeline-year { margin-bottom: 15px; }
+.timeline-year-title { 
+    font-weight: bold; 
+    color: #667eea; 
+    font-size: 1.2em;
+    margin-bottom: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.timeline-year-title:hover { color: #5568d3; }
+.timeline-year-title::before { content: "📅"; }
+.timeline-months { margin-left: 10px; }
+.timeline-month { 
+    padding: 6px 10px;
+    margin: 4px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #666;
+    font-size: 0.9em;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.timeline-month:hover { 
+    background: #f0f0f0; 
+    color: #667eea;
+}
+.timeline-month.active {
+    background: #667eea;
+    color: white;
+}
+.timeline-month-count {
+    background: #ddd;
+    color: #666;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+}
+.timeline-month.active .timeline-month-count {
+    background: rgba(255,255,255,0.3);
+    color: white;
+}
+
+/* 筛选标签 */
+.filter-tags { margin-bottom: 20px; }
+.filter-tag {
+    display: inline-block;
+    padding: 5px 15px;
+    background: #667eea;
+    color: white;
+    border-radius: 20px;
+    font-size: 0.9em;
+    margin-right: 10px;
+}
+.filter-tag a { color: white; text-decoration: none; }
+.filter-tag a:hover { text-decoration: underline; }
+
+/* 文章列表 */
+.posts-list { max-width: 100%; }
 .post-item { background: white; padding: 25px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 .post-item h2 { margin-bottom: 10px; }
 .post-item h2 a { color: #333; text-decoration: none; }
@@ -26,6 +109,13 @@
 .pagination .current { background: #667eea; color: white; border: 1px solid #667eea; }
 .pagination .disabled { color: #ccc; pointer-events: none; }
 .page-info { text-align: center; color: #888; margin-bottom: 20px; }
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .blog-layout { flex-direction: column; }
+    .blog-sidebar { width: 100%; }
+    .timeline { position: static; }
+}
 </style>
 
 <div class="container">
@@ -36,54 +126,89 @@
         {% endif %}
     </div>
     
-    <p class="page-info">共 {{ total_count }} 篇文章</p>
-    
-    <div class="posts-list">
-        {% for post in posts %}
-            <div class="post-item">
-                <h2><a href="{% pageurl post %}">{{ post.title }}</a></h2>
-                <div class="post-meta">
-                    {% if post.date %}
-                    发布于 {{ post.date|date:"Y年m月d日" }}
-                    {% elif post.first_published_at %}
-                    发布于 {{ post.first_published_at|date:"Y年m月d日" }}
-                    {% endif %}
+    <div class="blog-layout">
+        {# 时间轴侧边栏 #}
+        <aside class="blog-sidebar">
+            <div class="timeline">
+                <h3>📆 文章归档</h3>
+                
+                {% if filter_year %}
+                <div class="filter-tags">
+                    <span class="filter-tag">
+                        {{ filter_year }}年{% if filter_month %}{{ filter_month }}月{% endif %}
+                        <a href="?" style="margin-left: 8px; opacity: 0.8;">×</a>
+                    </span>
                 </div>
-                {% if post.intro %}
-                <div class="post-intro">{{ post.intro }}</div>
                 {% endif %}
-                <a href="{% pageurl post %}" class="read-more">阅读全文 →</a>
+                
+                {% for year, months in archive.items %}
+                <div class="timeline-year">
+                    <div class="timeline-year-title">{{ year }}年</div>
+                    <div class="timeline-months">
+                        {% for month, posts in months.items %}
+                        <div class="timeline-month {% if filter_year == year and filter_month == month %}active{% endif %}">
+                            <a href="?year={{ year }}&month={{ month }}">{{ month }}月</a>
+                            <span class="timeline-month-count">{{ posts|length }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-        {% empty %}
-            <p style="text-align: center; color: #888;">暂无文章</p>
-        {% endfor %}
-    </div>
-    
-    {# 分页 #}
-    {% if total_pages > 1 %}
-    <div class="pagination">
-        {# 上一页 #}
-        {% if current_page > 1 %}
-            <a href="?page={{ previous_page }}">上一页</a>
-        {% else %}
-            <span class="disabled">上一页</span>
-        {% endif %}
+        </aside>
         
-        {% for i in page_range %}
-            {% if i == current_page %}
-                <span class="current">{{ i }}</span>
-            {% else %}
-                <a href="?page={{ i }}">{{ i }}</a>
+        {# 文章内容区 #}
+        <main class="blog-content">
+            <p class="page-info">共 {% if filter_year %}{{ posts|length }}{% else %}{{ total_count }}{% endif %} 篇文章</p>
+            
+            <div class="posts-list">
+                {% for post in posts %}
+                    <div class="post-item" id="post-{{ forloop.counter }}">
+                        <h2><a href="{% pageurl post %}">{{ post.title }}</a></h2>
+                        <div class="post-meta">
+                            {% if post.date %}
+                            发布于 {{ post.date|date:"Y年m月d日" }}
+                            {% elif post.first_published_at %}
+                            发布于 {{ post.first_published_at|date:"Y年m月d日" }}
+                            {% endif %}
+                        </div>
+                        {% if post.intro %}
+                        <div class="post-intro">{{ post.intro }}</div>
+                        {% endif %}
+                        <a href="{% pageurl post %}" class="read-more">阅读全文 →</a>
+                    </div>
+                {% empty %}
+                    <p style="text-align: center; color: #888;">暂无文章</p>
+                {% endfor %}
+            </div>
+            
+            {# 分页 #}
+            {% if total_pages > 1 %}
+            <div class="pagination">
+                {# 上一页 #}
+                {% if current_page > 1 %}
+                    <a href="?page={{ previous_page }}{% if filter_year %}&year={{ filter_year }}{% endif %}{% if filter_month %}&month={{ filter_month }}{% endif %}">上一页</a>
+                {% else %}
+                    <span class="disabled">上一页</span>
+                {% endif %}
+                
+                {% for i in page_range %}
+                    {% if i == current_page %}
+                        <span class="current">{{ i }}</span>
+                    {% else %}
+                        <a href="?page={{ i }}{% if filter_year %}&year={{ filter_year }}{% endif %}{% if filter_month %}&month={{ filter_month }}{% endif %}">{{ i }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {# 下一页 #}
+                {% if current_page < total_pages %}
+                    <a href="?page={{ next_page }}{% if filter_year %}&year={{ filter_year }}{% endif %}{% if filter_month %}&month={{ filter_month }}{% endif %}">下一页</a>
+                {% else %}
+                    <span class="disabled">下一页</span>
+                {% endif %}
+            </div>
             {% endif %}
-        {% endfor %}
-        
-        {# 下一页 #}
-        {% if current_page < total_pages %}
-            <a href="?page={{ next_page }}">下一页</a>
-        {% else %}
-            <span class="disabled">下一页</span>
-        {% endif %}
+        </main>
     </div>
-    {% endif %}
 </div>
 {% endblock %}
