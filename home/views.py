@@ -90,17 +90,17 @@ def user_register(request):
         
         # 大小写敏感的用户名检查
         if User.objects.filter(username__exact=username).exists():
-            existing_user = User.objects.get(username=username)
-            messages.error(request, f'用户名 "{username}" 已被注册')
-            messages.info(request, f'如果这是您的账号，请直接 <a href="/accounts/login/">登录</a>，或联系管理员找回。')
-            return render(request, 'home/register.html')
+            return render(request, 'home/register.html', {
+                'error_message': f'用户名 "{username}" 已被注册',
+                'show_login_link': True
+            })
         
         # 大小写敏感的邮箱检查
         if User.objects.filter(email__exact=email).exists():
-            existing_user = User.objects.get(email=email)
-            messages.error(request, f'邮箱 "{email}" 已被注册')
-            messages.info(request, f'如果这是您的邮箱，请直接 <a href="/accounts/login/">登录</a>。')
-            return render(request, 'home/register.html')
+            return render(request, 'home/register.html', {
+                'error_message': f'邮箱 "{email}" 已被注册',
+                'show_login_link': True
+            })
         
         # 创建用户，但设置为未激活状态
         user = User.objects.create_user(

@@ -5,6 +5,15 @@
     <div class="auth-box">
         <h2>用户注册</h2>
         
+        {% if error_message %}
+        <div class="messages">
+            <div class="alert alert-error">{{ error_message }}</div>
+            {% if show_login_link %}
+            <p>如果这是您的账号，请直接 <a href="{% url 'account_login' %}">登录</a>，或联系管理员找回。</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
         {% if messages %}
         <div class="messages">
             {% for message in messages %}
