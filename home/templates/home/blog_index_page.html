@@ -119,7 +119,7 @@
                 <div class="calendar-months">
                     {% for year, months in archive.items %}
                         {% if forloop.first %}
-                            {% for m, post_list in months.items|sort %}
+                            {% for m, post_list in months.items %}
                             <a href="?year={{ year }}&month={{ m }}" class="calendar-month {% if filter_year == year and filter_month == m %}active{% endif %}">
                                 <div class="month-name">
                                 {% if m == 1 %}一月{% elif m == 2 %}二月{% elif m == 3 %}三月{% elif m == 4 %}四月{% elif m == 5 %}五月{% elif m == 6 %}六月{% elif m == 7 %}七月{% elif m == 8 %}八月{% elif m == 9 %}九月{% elif m == 10 %}十月{% elif m == 11 %}十一月{% else %}十二月{% endif %}
