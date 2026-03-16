@@ -109,7 +109,7 @@ class HomePage(Page):
                     return post.first_published_at
                 return post.pk
             posts.sort(key=sort_key, reverse=True)
-            # 取前6篇
+            # 取前6篇（最新的6篇）
             context['blog_posts'] = posts[:6]
         else:
             context['blog_posts'] = []
