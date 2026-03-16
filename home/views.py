@@ -34,6 +34,18 @@ def user_login(request):
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
+        # 检查用户是否存在（大小写敏感）
+        user_exists = User.objects.filter(username__exact=username).exists()
+        
+        if not user_exists:
+            # 检查是否是因为大小写问题
+            similar_users = User.objects.filter(username__icontains=username)
+            if similar_users.exists():
+                messages.error(request, f'用户 "{username}" 不存在，是否输入了错误的大小写？请重试。')
+            else:
+                messages.error(request, '用户名或密码错误')
+            return render(request, 'home/login.html')
+        
         # 检查用户是否存在且已激活
         try:
             user = User.objects.get(username=username)
@@ -76,12 +88,18 @@ def user_register(request):
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
-        if User.objects.filter(username=username).exists():
-            messages.error(request, '用户名已存在')
+        # 大小写敏感的用户名检查
+        if User.objects.filter(username__exact=username).exists():
+            existing_user = User.objects.get(username=username)
+            messages.error(request, f'用户名 "{username}" 已被注册')
+            messages.info(request, f'如果这是您的账号，请直接 <a href="/accounts/login/">登录</a>，或联系管理员找回。')
             return render(request, 'home/register.html')
         
-        if User.objects.filter(email=email).exists():
-            messages.error(request, '邮箱已被注册')
+        # 大小写敏感的邮箱检查
+        if User.objects.filter(email__exact=email).exists():
+            existing_user = User.objects.get(email=email)
+            messages.error(request, f'邮箱 "{email}" 已被注册')
+            messages.info(request, f'如果这是您的邮箱，请直接 <a href="/accounts/login/">登录</a>。')
             return render(request, 'home/register.html')
         
         # 创建用户，但设置为未激活状态
