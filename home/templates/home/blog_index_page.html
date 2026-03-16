@@ -114,7 +114,11 @@
                 </div>
                 {% endif %}
                 
-                <div class="calendar-year">{{ filter_year|default:archive.keys|first }}年</div>
+                <div class="calendar-year">
+                {% with first_year=archive.items|first %}
+                {{ first_year.0 }}年
+                {% endwith %}
+                </div>
                 
                 <div class="calendar-months">
                     {% for year, months in archive.items %}
