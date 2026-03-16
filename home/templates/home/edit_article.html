@@ -42,25 +42,12 @@
                 
                 <!-- Markdown编辑器容器 -->
                 <div id="markdown-editor" style="display: none;">
-                    <textarea id="markdown-body" name="body_markdown" rows="20" class="markdown-textarea" placeholder="使用Markdown语法撰写文章...
-
-# 标题1
-## 标题2
-
-**粗体** *斜体*
-
-- 列表项1
-- 列表项2
-
-[链接文本](URL)
-
-```代码块```
-"></textarea>
+                    <textarea id="markdown-body" name="body_markdown" rows="20" class="markdown-textarea" placeholder="使用Markdown语法撰写文章..."></textarea>
                     <div class="markdown-preview" id="markdown-preview" style="display: none; margin-top: 20px; padding: 20px; border: 1px solid #ddd; background: #f9f9f9;"></div>
                 </div>
                 
                 <!-- 隐藏字段用于存储最终内容 -->
-                <input type="hidden" id="body" name="body" value="{{ article.body }}">
+                <input type="hidden" id="body" name="body" value="{{ article.body|escapejs }}">
             </div>
             
             <div class="form-actions">
@@ -74,7 +61,6 @@
 <style>
 .editor-toggle { margin-bottom: 10px; display: flex; gap: 5px; }
 .editor-toggle .btn { 
-    margin-right: 0; 
     padding: 8px 20px;
     background: #e0e0e0;
     color: #666;
@@ -83,15 +69,13 @@
     cursor: pointer;
     transition: all 0.2s;
 }
-.editor-toggle .btn:hover {
-    background: #d0d0d0;
-}
+.editor-toggle .btn:hover { background: #d0d0d0; }
 .editor-toggle .btn.active { 
     background: #667eea; 
     color: white;
     border-color: #667eea;
 }
-.markdown-textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; line-height: 1.6; }
+.markdown-textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; line-height: 1.6; min-height: 300px; }
 .markdown-preview h1, .markdown-preview h2, .markdown-preview h3 { margin-top: 20px; margin-bottom: 10px; }
 .markdown-preview p { margin-bottom: 15px; }
 .markdown-preview code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
@@ -100,90 +84,94 @@
 .markdown-preview img { max-width: 100%; }
 </style>
 
-<input type="hidden" id="body" name="body" value="{{ article.body|escape }}">
-</script>
 <script>
-// 使用 escapejs 转义HTML内容
-var existingBody = "{{ article.body|escapejs }}";
-var currentMode = 'richtext';
-
-// 初始化Quill编辑器
-var quill = new Quill('#quill-editor', {
-    theme: 'snow',
-    placeholder: '在这里撰写您的文章...',
-    modules: {
-        toolbar: [
-            [{ 'header': [1, 2, 3, false] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            ['blockquote', 'code-block'],
-            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-            [{ 'color': [] }, { 'background': [] }],
-            ['link', 'image'],
-            ['clean']
-        ]
-    }
-});
-
-// 加载已有内容到富文本编辑器
-if (existingBody && existingBody.length > 0) {
-    try {
-        quill.root.innerHTML = existingBody;
-    } catch(e) {
-        console.log('Error loading content:', e);
-    }
-}
-
-// 初始化Markdown编辑器内容
-var plainText = existingBody ? existingBody.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '';
-document.getElementById('markdown-body').value = plainText;
-
-function switchEditor(mode) {
-    currentMode = mode;
+(function() {
+    // 获取已有内容
+    var existingBody = document.getElementById('body').value;
+    var currentMode = 'richtext';
     
-    if (mode === 'richtext') {
-        document.getElementById('quill-editor').style.display = 'block';
-        document.getElementById('markdown-editor').style.display = 'none';
-        document.getElementById('btnRichText').classList.add('active');
-        document.getElementById('btnMarkdown').classList.remove('active');
-    } else {
-        document.getElementById('quill-editor').style.display = 'none';
-        document.getElementById('markdown-editor').style.display = 'block';
-        document.getElementById('btnRichText').classList.remove('active');
-        document.getElementById('btnMarkdown').classList.add('active');
-    }
-}
-
-function submitForm() {
-    var bodyField = document.getElementById('body');
-    
-    if (currentMode === 'richtext') {
-        bodyField.value = quill.root.innerHTML;
-    } else {
-        var markdownText = document.getElementById('markdown-body').value;
-        if (markdownText) {
-            bodyField.value = marked.parse(markdownText);
-        } else {
-            bodyField.value = '';
+    // 初始化Quill编辑器
+    var quill = new Quill('#quill-editor', {
+        theme: 'snow',
+        placeholder: '在这里撰写您的文章...',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                ['blockquote', 'code-block'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'color': [] }, { 'background': [] }],
+                ['link', 'image'],
+                ['clean']
+            ]
         }
+    });
+    
+    // 加载已有内容到富文本编辑器
+    if (existingBody) {
+        quill.root.innerHTML = existingBody;
     }
     
-    return true;
-}
-</script>
-
-// Markdown实时预览
-document.getElementById('markdown-body').addEventListener('input', function() {
-    var preview = document.getElementById('markdown-preview');
-    var text = this.value;
-    if (text) {
-        preview.innerHTML = marked.parse(text);
-        preview.style.display = 'block';
-    } else {
-        preview.style.display = 'none';
+    // 初始化Markdown编辑器 - 保持原始HTML内容以便在模式切换时使用
+    var markdownTextarea = document.getElementById('markdown-body');
+    if (existingBody) {
+        // 将HTML转为简单文本（去掉标签但保留换行）
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = existingBody;
+        markdownTextarea.value = tempDiv.innerText || tempDiv.textContent;
     }
-});
-
-// 初始化视图
-switchEditor(currentMode);
+    
+    // 切换编辑器
+    window.switchEditor = function(mode) {
+        currentMode = mode;
+        
+        if (mode === 'richtext') {
+            document.getElementById('quill-editor').style.display = 'block';
+            document.getElementById('markdown-editor').style.display = 'none';
+            document.getElementById('btnRichText').classList.add('active');
+            document.getElementById('btnMarkdown').classList.remove('active');
+        } else {
+            document.getElementById('quill-editor').style.display = 'none';
+            document.getElementById('markdown-editor').style.display = 'block';
+            document.getElementById('btnRichText').classList.remove('active');
+            document.getElementById('btnMarkdown').classList.add('active');
+        }
+    };
+    
+    // 提交表单
+    window.submitForm = function() {
+        var bodyField = document.getElementById('body');
+        
+        if (currentMode === 'richtext') {
+            bodyField.value = quill.root.innerHTML;
+        } else {
+            var markdownText = document.getElementById('markdown-body').value;
+            if (markdownText && typeof marked !== 'undefined') {
+                bodyField.value = marked.parse(markdownText);
+            } else {
+                bodyField.value = '';
+            }
+        }
+        
+        return true;
+    };
+    
+    // Markdown实时预览
+    document.getElementById('markdown-body').addEventListener('input', function() {
+        var preview = document.getElementById('markdown-preview');
+        var text = this.value;
+        if (text && typeof marked !== 'undefined') {
+            preview.innerHTML = marked.parse(text);
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+    });
+    
+    // 页面加载后初始化视图
+    window.onload = function() {
+        switchEditor('richtext');
+    };
+})();
 </script>
 {% endblock %}
