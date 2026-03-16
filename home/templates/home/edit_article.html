@@ -86,7 +86,7 @@
 
 <script>
 // 获取已有的内容
-var existingBody = {{ article.body|escapejs }};
+var existingBody = "{{ article.body|escapejs }}";
 var currentMode = 'richtext'; // 默认使用富文本编辑器
 
 // 初始化Quill编辑器
