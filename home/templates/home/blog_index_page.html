@@ -17,6 +17,15 @@
 .post-intro { color: #666; line-height: 1.6; }
 .read-more { display: inline-block; margin-top: 15px; color: #667eea; text-decoration: none; font-weight: bold; }
 .read-more:hover { text-decoration: underline; }
+
+/* 分页样式 */
+.pagination { text-align: center; margin: 40px 0; }
+.pagination a, .pagination span { display: inline-block; padding: 8px 15px; margin: 0 3px; border-radius: 5px; text-decoration: none; }
+.pagination a { background: white; color: #667eea; border: 1px solid #ddd; }
+.pagination a:hover { background: #667eea; color: white; }
+.pagination .current { background: #667eea; color: white; border: 1px solid #667eea; }
+.pagination .disabled { color: #ccc; pointer-events: none; }
+.page-info { text-align: center; color: #888; margin-bottom: 20px; }
 </style>
 
 <div class="container">
@@ -27,8 +36,10 @@
         {% endif %}
     </div>
     
+    <p class="page-info">共 {{ total_count }} 篇文章</p>
+    
     <div class="posts-list">
-        {% for post in page.get_children.specific.live %}
+        {% for post in posts %}
             <div class="post-item">
                 <h2><a href="{% pageurl post %}">{{ post.title }}</a></h2>
                 <div class="post-meta">
@@ -45,5 +56,32 @@
             <p style="text-align: center; color: #888;">暂无文章</p>
         {% endfor %}
     </div>
+    
+    {# 分页 #}
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {# 上一页 #}
+        {% if current_page > 1 %}
+            <a href="?page={{ previous_page }}">上一页</a>
+        {% else %}
+            <span class="disabled">上一页</span>
+        {% endif %}
+        
+        {% for i in page_range %}
+            {% if i == current_page %}
+                <span class="current">{{ i }}</span>
+            {% else %}
+                <a href="?page={{ i }}">{{ i }}</a>
+            {% endif %}
+        {% endfor %}
+        
+        {# 下一页 #}
+        {% if current_page < total_pages %}
+            <a href="?page={{ next_page }}">下一页</a>
+        {% else %}
+            <span class="disabled">下一页</span>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

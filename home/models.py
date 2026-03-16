@@ -99,8 +99,8 @@ class HomePage(Page):
         from home.models import BlogIndexPage
         blog_index = BlogIndexPage.objects.first()
         if blog_index:
-            # 使用list()强制评估查询集，确保模板能正确渲染
-            posts = list(blog_index.get_children().specific().live()[:6])
+            # 按日期倒序排列，获取最近的6篇文章
+            posts = list(blog_index.get_children().specific().live().order_by('-date')[:6])
             context['blog_posts'] = posts
         else:
             context['blog_posts'] = []
@@ -116,10 +116,52 @@ class BlogIndexPage(Page):
     ]
     
     def get_context(self, request, *args, **kwargs):
-        """获取博客文章列表上下文"""
+        """获取博客文章列表上下文（分页）"""
         context = super().get_context(request, *args, **kwargs)
-        # 获取所有已发布的博客文章页面
-        context['posts'] = self.get_children().specific().live()
+        
+        # 获取分页参数
+        page = int(request.GET.get('page', 1))
+        per_page = 10
+        
+        # 获取所有文章并按日期倒序
+        all_posts = self.get_children().specific().live().order_by('-date')
+        
+        # 计算总数
+        total_count = all_posts.count()
+        total_pages = (total_count + per_page - 1) // per_page
+        
+        # 确保页码有效
+        if page < 1:
+            page = 1
+        if page > total_pages and total_pages > 0:
+            page = total_pages
+        
+        # 获取当前页的文章
+        start = (page - 1) * per_page
+        end = start + per_page
+        posts = list(all_posts[start:end])
+        
+        # 生成页码范围（显示最多10页）
+        page_range = []
+        if total_pages <= 10:
+            page_range = list(range(1, total_pages + 1))
+        else:
+            if page <= 5:
+                page_range = list(range(1, 11))
+            elif page >= total_pages - 4:
+                page_range = list(range(total_pages - 9, total_pages + 1))
+            else:
+                page_range = list(range(page - 4, page + 6))
+        
+        context['posts'] = posts
+        context['current_page'] = page
+        context['total_pages'] = total_pages
+        context['total_count'] = total_count
+        context['per_page'] = per_page
+        context['page_range'] = page_range
+        context['previous_page'] = page - 1 if page > 1 else 1
+        context['next_page'] = page + 1 if page < total_pages else total_pages
+        
         return context
 
 
