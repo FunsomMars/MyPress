@@ -99,47 +99,39 @@
                 </div>
                 {% endif %}
                 
-                <div class="calendar-year">2020年</div>
+                <div class="calendar-year">{{ current_year }}年</div>
                 
                 <div class="calendar-months">
-                    <a href="?year=2020&month=9" class="calendar-month {% if filter_month == 9 %}active{% endif %}">
-                        <div class="month-name">九月</div>
-                        <div class="post-count">1篇</div>
-                    </a>
-                    <a href="?year=2020&month=5" class="calendar-month {% if filter_month == 5 %}active{% endif %}">
-                        <div class="month-name">五月</div>
-                        <div class="post-count">1篇</div>
-                    </a>
+                    {% for year, months in archive_list %}
+                    {% if forloop.first %}
+                        <div class="calendar-year">{{ year }}年</div>
+                        {% for month, count in months %}
+                        <a href="?year={{ year }}&month={{ month }}" class="calendar-month {% if filter_year == year and filter_month == month %}active{% endif %}">
+                            <div class="month-name">
+                            {% if month == 1 %}一月{% elif month == 2 %}二月{% elif month == 3 %}三月{% elif month == 4 %}四月{% elif month == 5 %}五月{% elif month == 6 %}六月{% elif month == 7 %}七月{% elif month == 8 %}八月{% elif month == 9 %}九月{% elif month == 10 %}十月{% elif month == 11 %}十一月{% else %}十二月{% endif %}
+                            </div>
+                            <div class="post-count">{{ count }}篇</div>
+                        </a>
+                        {% endfor %}
+                    {% endif %}
+                    {% endfor %}
                 </div>
                 
-                <div class="calendar-year" style="margin-top:20px;">2019年</div>
-                
-                <div class="calendar-months">
-                    <a href="?year=2019&month=10" class="calendar-month {% if filter_month == 10 %}active{% endif %}">
-                        <div class="month-name">十月</div>
-                        <div class="post-count">1篇</div>
-                    </a>
-                    <a href="?year=2019&month=9" class="calendar-month {% if filter_month == 9 %}active{% endif %}">
-                        <div class="month-name">九月</div>
-                        <div class="post-count">1篇</div>
-                    </a>
-                    <a href="?year=2019&month=7" class="calendar-month {% if filter_month == 7 %}active{% endif %}">
-                        <div class="month-name">七月</div>
-                        <div class="post-count">2篇</div>
-                    </a>
-                    <a href="?year=2019&month=4" class="calendar-month {% if filter_month == 4 %}active{% endif %}">
-                        <div class="month-name">四月</div>
-                        <div class="post-count">1篇</div>
-                    </a>
-                    <a href="?year=2019&month=3" class="calendar-month {% if filter_month == 3 %}active{% endif %}">
-                        <div class="month-name">三月</div>
-                        <div class="post-count">1篇</div>
-                    </a>
-                    <a href="?year=2019&month=2" class="calendar-month {% if filter_month == 2 %}active{% endif %}">
-                        <div class="month-name">二月</div>
-                        <div class="post-count">1篇</div>
-                    </a>
-                </div>
+                {% for year, months in archive_list %}
+                    {% if not forloop.first %}
+                    <div class="calendar-year" style="margin-top:20px;">{{ year }}年</div>
+                    <div class="calendar-months">
+                        {% for month, count in months %}
+                        <a href="?year={{ year }}&month={{ month }}" class="calendar-month {% if filter_year == year and filter_month == month %}active{% endif %}">
+                            <div class="month-name">
+                            {% if month == 1 %}一月{% elif month == 2 %}二月{% elif month == 3 %}三月{% elif month == 4 %}四月{% elif month == 5 %}五月{% elif month == 6 %}六月{% elif month == 7 %}七月{% elif month == 8 %}八月{% elif month == 9 %}九月{% elif month == 10 %}十月{% elif month == 11 %}十一月{% else %}十二月{% endif %}
+                            </div>
+                            <div class="post-count">{{ count }}篇</div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
             </div>
         </aside>
         

@@ -230,6 +230,16 @@ class BlogIndexPage(Page):
         
         context['archive'] = dict(sorted(archive_sorted.items(), reverse=True))
         
+        # 生成简化的归档列表 [(year, [(month, count), ...]), ...]
+        archive_list = []
+        for year in sorted(archive_sorted.keys(), reverse=True):
+            months_list = []
+            for month in sorted(archive_sorted[year].keys(), reverse=True):
+                count = len(archive_sorted[year][month])
+                months_list.append((month, count))
+            archive_list.append((year, months_list))
+        context['archive_list'] = archive_list
+        
         return context
     
     def _get_post_date(self, post):
