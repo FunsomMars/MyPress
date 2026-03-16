@@ -138,14 +138,21 @@ MyPress 团队
                 recipient_list=[email],
                 fail_silently=False,
             )
-            messages.success(request, f'注册成功！请前往 {email} 查收验证邮件，点击链接完成验证。')
+            # 注册成功，跳转到成功提示页面
+            return render(request, 'home/register_success.html', {
+                'email': email,
+                'next_url': request.GET.get('next', '/')
+            })
         except Exception as e:
             # 邮件发送失败时，仍然创建未激活用户，等待手动激活
             # 可以记录日志或在管理后台处理
             print(f"邮件发送失败: {e}")
-            messages.warning(request, f'注册成功！但邮件发送失败，请联系管理员激活账户。')
-        
-        return redirect('/')
+            # 邮件发送失败也跳转到成功页面
+            return render(request, 'home/register_success.html', {
+                'email': email,
+                'next_url': request.GET.get('next', '/'),
+                'email_failed': True
+            })
     
     return render(request, 'home/register.html')
 

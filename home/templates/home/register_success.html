@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %}template-register-success{% endblock %}
+
+{% block content %}
+<style>
+.register-success-container {
+    max-width: 600px;
+    margin: 80px auto;
+    padding: 40px;
+    text-align: center;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.register-success-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.register-success-title {
+    font-size: 24px;
+    color: #28a745;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.register-success-title.warning {
+    color: #ffc107;
+}
+
+.register-success-message {
+    font-size: 16px;
+    color: #666;
+    line-height: 1.8;
+    margin-bottom: 30px;
+}
+
+.register-success-message strong {
+    color: #333;
+}
+
+.countdown-container {
+    margin: 30px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.countdown-text {
+    font-size: 14px;
+    color: #666;
+}
+
+.countdown-number {
+    font-size: 36px;
+    font-weight: bold;
+    color: #667eea;
+    margin: 10px 0;
+}
+
+.btn-continue {
+    display: inline-block;
+    padding: 12px 30px;
+    background: #667eea;
+    color: white;
+    text-decoration: none;
+    border-radius: 25px;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+.btn-continue:hover {
+    background: #5568d3;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.email-note {
+    margin-top: 20px;
+    font-size: 12px;
+    color: #999;
+}
+</style>
+
+<div class="register-success-container">
+    {% if email_failed %}
+    <div class="register-success-icon">⚠️</div>
+    <h1 class="register-success-title warning">注册成功！（邮件发送失败）</h1>
+    
+    <div class="register-success-message">
+        <p>您的账户 <strong>{{ email }}</strong> 已创建成功！</p>
+        <p>但由于邮件服务问题，验证邮件发送失败。</p>
+        <p>请 <strong>联系管理员</strong> 手动激活您的账户，或重试注册。</p>
+    </div>
+    
+    <div class="countdown-container">
+        <p class="countdown-text">页面将在 <span class="countdown-number" id="countdown">5</span> 秒后自动跳转...</p>
+        <a href="{{ next_url }}" class="btn-continue">立即返回</a>
+    </div>
+    
+    {% else %}
+    <div class="register-success-icon">✉️</div>
+    <h1 class="register-success-title">注册成功！</h1>
+    
+    <div class="register-success-message">
+        <p>感谢您注册 <strong>MyPress</strong>！</p>
+        <p>我们已向您的邮箱 <strong>{{ email }}</strong> 发送了一封验证邮件。</p>
+        <p>请查收邮件并点击链接完成账户验证。</p>
+    </div>
+    
+    <div class="countdown-container">
+        <p class="countdown-text">页面将在 <span class="countdown-number" id="countdown">5</span> 秒后自动跳转...</p>
+        <a href="{{ next_url }}" class="btn-continue">立即返回</a>
+    </div>
+    
+    <p class="email-note">如果没有收到邮件，请检查垃圾邮件文件夹，或联系管理员。</p>
+    {% endif %}
+</div>
+
+<script>
+let countdown = 5;
+const countdownEl = document.getElementById('countdown');
+const nextUrl = "{{ next_url }}";
+
+const timer = setInterval(() => {
+    countdown--;
+    countdownEl.textContent = countdown;
+    
+    if (countdown <= 0) {
+        clearInterval(timer);
+        if (nextUrl && nextUrl !== 'None') {
+            window.location.href = nextUrl;
+        } else {
+            window.location.href = '/';
+        }
+    }
+}, 1000);
+</script>
+{% endblock %}
