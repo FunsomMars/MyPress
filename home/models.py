@@ -99,8 +99,8 @@ class HomePage(Page):
         from home.models import BlogIndexPage
         blog_index = BlogIndexPage.objects.first()
         if blog_index:
-            # 按日期倒序排列，获取最近的6篇文章
-            posts = list(blog_index.get_children().specific().live().order_by('-date')[:6])
+            # 按发布日期倒序排列，获取最近的6篇文章
+            posts = list(blog_index.get_children().specific().live().order_by('-first_published_at')[:6])
             context['blog_posts'] = posts
         else:
             context['blog_posts'] = []
@@ -123,8 +123,8 @@ class BlogIndexPage(Page):
         page = int(request.GET.get('page', 1))
         per_page = 10
         
-        # 获取所有文章并按日期倒序
-        all_posts = self.get_children().specific().live().order_by('-date')
+        # 获取所有文章并按发布日期倒序（使用 first_published_at）
+        all_posts = self.get_children().specific().live().order_by('-first_published_at')
         
         # 计算总数
         total_count = all_posts.count()
