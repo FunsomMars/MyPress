@@ -8,7 +8,6 @@
 .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 .page-header { text-align: center; margin: 40px 0; }
 .page-header h1 { font-size: 2.5em; color: #333; }
-
 .blog-layout { display: flex; gap: 30px; margin-top: 30px; }
 .blog-sidebar { width: 280px; flex-shrink: 0; }
 .blog-content { flex: 1; min-width: 0; }
@@ -32,11 +31,7 @@
 
 .calendar-year { text-align: center; font-size: 1.3em; font-weight: bold; color: #333; margin-bottom: 15px; }
 
-.calendar-months {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-}
+.calendar-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .calendar-month {
     padding: 12px 5px;
     text-align: center;
@@ -54,17 +49,8 @@
 .calendar-month.active .post-count { color: rgba(255,255,255,0.8); }
 
 .filter-tags { margin-bottom: 20px; }
-.filter-tag {
-    display: inline-block;
-    padding: 5px 15px;
-    background: #667eea;
-    color: white;
-    border-radius: 20px;
-    font-size: 0.9em;
-    margin-right: 10px;
-}
+.filter-tag { display: inline-block; padding: 5px 15px; background: #667eea; color: white; border-radius: 20px; font-size: 0.9em; margin-right: 10px; }
 .filter-tag a { color: white; text-decoration: none; }
-.filter-tag a:hover { text-decoration: underline; }
 
 .posts-list { max-width: 100%; }
 .post-item { background: white; padding: 25px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -74,7 +60,6 @@
 .post-meta { color: #888; font-size: 0.9em; margin-bottom: 15px; }
 .post-intro { color: #666; line-height: 1.6; }
 .read-more { display: inline-block; margin-top: 15px; color: #667eea; text-decoration: none; font-weight: bold; }
-.read-more:hover { text-decoration: underline; }
 
 .pagination { text-align: center; margin: 40px 0; }
 .pagination a, .pagination span { display: inline-block; padding: 8px 15px; margin: 0 3px; border-radius: 5px; text-decoration: none; }
@@ -114,25 +99,46 @@
                 </div>
                 {% endif %}
                 
-                <div class="calendar-year">
-                {% with first_year=archive.items|first %}
-                {{ first_year.0 }}年
-                {% endwith %}
-                </div>
+                <div class="calendar-year">2020年</div>
                 
                 <div class="calendar-months">
-                    {% for year, months in archive.items %}
-                        {% if forloop.first %}
-                            {% for m, post_list in months.items %}
-                            <a href="?year={{ year }}&month={{ m }}" class="calendar-month {% if filter_year == year and filter_month == m %}active{% endif %}">
-                                <div class="month-name">
-                                {% if m == 1 %}一月{% elif m == 2 %}二月{% elif m == 3 %}三月{% elif m == 4 %}四月{% elif m == 5 %}五月{% elif m == 6 %}六月{% elif m == 7 %}七月{% elif m == 8 %}八月{% elif m == 9 %}九月{% elif m == 10 %}十月{% elif m == 11 %}十一月{% else %}十二月{% endif %}
-                                </div>
-                                <div class="post-count">{{ post_list|length }}篇</div>
-                            </a>
-                            {% endfor %}
-                        {% endif %}
-                    {% endfor %}
+                    <a href="?year=2020&month=9" class="calendar-month {% if filter_month == 9 %}active{% endif %}">
+                        <div class="month-name">九月</div>
+                        <div class="post-count">1篇</div>
+                    </a>
+                    <a href="?year=2020&month=5" class="calendar-month {% if filter_month == 5 %}active{% endif %}">
+                        <div class="month-name">五月</div>
+                        <div class="post-count">1篇</div>
+                    </a>
+                </div>
+                
+                <div class="calendar-year" style="margin-top:20px;">2019年</div>
+                
+                <div class="calendar-months">
+                    <a href="?year=2019&month=10" class="calendar-month {% if filter_month == 10 %}active{% endif %}">
+                        <div class="month-name">十月</div>
+                        <div class="post-count">1篇</div>
+                    </a>
+                    <a href="?year=2019&month=9" class="calendar-month {% if filter_month == 9 %}active{% endif %}">
+                        <div class="month-name">九月</div>
+                        <div class="post-count">1篇</div>
+                    </a>
+                    <a href="?year=2019&month=7" class="calendar-month {% if filter_month == 7 %}active{% endif %}">
+                        <div class="month-name">七月</div>
+                        <div class="post-count">2篇</div>
+                    </a>
+                    <a href="?year=2019&month=4" class="calendar-month {% if filter_month == 4 %}active{% endif %}">
+                        <div class="month-name">四月</div>
+                        <div class="post-count">1篇</div>
+                    </a>
+                    <a href="?year=2019&month=3" class="calendar-month {% if filter_month == 3 %}active{% endif %}">
+                        <div class="month-name">三月</div>
+                        <div class="post-count">1篇</div>
+                    </a>
+                    <a href="?year=2019&month=2" class="calendar-month {% if filter_month == 2 %}active{% endif %}">
+                        <div class="month-name">二月</div>
+                        <div class="post-count">1篇</div>
+                    </a>
                 </div>
             </div>
         </aside>
