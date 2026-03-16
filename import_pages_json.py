@@ -13,6 +13,7 @@ sys.path.insert(0, '/app')
 django.setup()
 
 import re
+from urllib.parse import quote
 from django.contrib.auth import get_user_model
 from wagtail.models import Page
 from home.models import HomePage, CustomPage
@@ -43,14 +44,39 @@ def clean_content(content):
     content = content.replace('https://www.mspace.tech/wp-content', '/media')
     content = content.replace('http://www.mspace.tech/wp-content', '/media')
     
-    # Clean escapes
-    content = content.replace('\\r\\n', '\n').replace('\\n', '\n')
+    # Clean escapes - more aggressive cleanup
+    content = content.replace('\\r\\n', '').replace('\\n', '')
+    content = content.replace('\r\n', '').replace('\n', '')
     content = content.replace('&nbsp;', ' ')
     content = content.replace('\\"', '"')
     content = content.replace("\\'", "'")
     
     # Remove HTML comments
     content = re.sub(r'<!--.*?-->', '', content, flags=re.DOTALL)
+    
+    # Fix escaped quotes around URLs
+    content = re.sub(r'href=\\\"(/media/[^\"]+)\\\"', r'href="\1"', content)
+    content = re.sub(r'src=\\\"(/media/[^\"]+)\\\"', r'src="\1"', content)
+    content = content.replace('\\\"', '"')
+    
+    # Convert audio shortcode to HTML5 audio tag
+    def replace_audio(match):
+        url = match.group(1)
+        preload = match.group(3) or 'auto'
+        return f'<audio controls preload="{preload}" src="{url}" style="width:100%;margin:20px 0;"></audio>'
+    content = re.sub(r'\[audio\s+mp3="([^"]+)"\s*(preload="([^"]+)")?\s*\]\[\/audio\]', replace_audio, content)
+    
+    # URL encode non-ASCII characters in media URLs
+    def encode_url(match):
+        url = match.group(1)
+        if any(ord(c) > 127 for c in url):
+            if '/' in url:
+                path, filename = url.rsplit('/', 1)
+                encoded = quote(filename, safe='')
+                return match.group(0).replace(url, path + '/' + encoded)
+        return match.group(0)
+    content = re.sub(r'src="(/media/[^"]+)"', encode_url, content)
+    content = re.sub(r'href="(/media/[^"]+)"', encode_url, content)
     
     return content
 
