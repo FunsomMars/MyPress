@@ -100,88 +100,76 @@
 .markdown-preview img { max-width: 100%; }
 </style>
 
+<input type="hidden" id="body" name="body" value="{{ article.body|escape }}">
+</script>
 <script>
-// 使用 safe 过滤器避免 escapejs 的问题
-var existingBody = {{ article.body|safe }};
+// 使用 escapejs 转义HTML内容
+var existingBody = "{{ article.body|escapejs }}";
+var currentMode = 'richtext';
 
-// 等待 DOM 加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    var currentMode = 'richtext'; // 默认使用富文本编辑器
-
-    // 初始化Quill编辑器
-    var quill = new Quill('#quill-editor', {
-        theme: 'snow',
-        placeholder: '在这里撰写您的文章...',
-        modules: {
-            toolbar: [
-                [{ 'header': [1, 2, 3, false] }],
-                ['bold', 'italic', 'underline', 'strike'],
-                ['blockquote', 'code-block'],
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                [{ 'color': [] }, { 'background': [] }],
-                ['link', 'image'],
-                ['clean']
-            ]
-        }
-    });
-
-    // 加载已有内容到富文本编辑器
-    if (existingBody) {
-        // 使用 Delta 来正确加载包含图片的内容
-        var tempDiv = document.createElement('div');
-        tempDiv.innerHTML = existingBody;
-        
-        // 处理图片路径 - 添加完整URL
-        var images = tempDiv.querySelectorAll('img');
-        images.forEach(function(img) {
-            var src = img.getAttribute('src');
-            if (src && !src.startsWith('http') && !src.startsWith('/')) {
-                img.setAttribute('src', '/' + src);
-            }
-        });
-        
-        quill.root.innerHTML = tempDiv.innerHTML;
+// 初始化Quill编辑器
+var quill = new Quill('#quill-editor', {
+    theme: 'snow',
+    placeholder: '在这里撰写您的文章...',
+    modules: {
+        toolbar: [
+            [{ 'header': [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'color': [] }, { 'background': [] }],
+            ['link', 'image'],
+            ['clean']
+        ]
     }
-
-    // 初始化Markdown编辑器内容 - 提取纯文本
-    var plainText = existingBody ? existingBody.replace(/<[^>]+>/g, '\n').replace(/\n\n+/g, '\n').trim() : '';
-    document.getElementById('markdown-body').value = plainText;
-
-    window.switchEditor = function(mode) {
-        currentMode = mode;
-        
-        if (mode === 'richtext') {
-            document.getElementById('quill-editor').style.display = 'block';
-            document.getElementById('markdown-editor').style.display = 'none';
-            document.getElementById('btnRichText').classList.add('active');
-            document.getElementById('btnMarkdown').classList.remove('active');
-        } else {
-            document.getElementById('quill-editor').style.display = 'none';
-            document.getElementById('markdown-editor').style.display = 'block';
-            document.getElementById('btnRichText').classList.remove('active');
-            document.getElementById('btnMarkdown').classList.add('active');
-        }
-    };
-
-    window.submitForm = function() {
-        var bodyField = document.getElementById('body');
-        
-        if (currentMode === 'richtext') {
-            // 从Quill获取HTML内容
-            bodyField.value = quill.root.innerHTML;
-        } else {
-            // 从Markdown转换
-            var markdownText = document.getElementById('markdown-body').value;
-            if (markdownText) {
-                bodyField.value = marked.parse(markdownText);
-            } else {
-                bodyField.value = '';
-            }
-        }
-        
-        return true;
-    };
 });
+
+// 加载已有内容到富文本编辑器
+if (existingBody && existingBody.length > 0) {
+    try {
+        quill.root.innerHTML = existingBody;
+    } catch(e) {
+        console.log('Error loading content:', e);
+    }
+}
+
+// 初始化Markdown编辑器内容
+var plainText = existingBody ? existingBody.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '';
+document.getElementById('markdown-body').value = plainText;
+
+function switchEditor(mode) {
+    currentMode = mode;
+    
+    if (mode === 'richtext') {
+        document.getElementById('quill-editor').style.display = 'block';
+        document.getElementById('markdown-editor').style.display = 'none';
+        document.getElementById('btnRichText').classList.add('active');
+        document.getElementById('btnMarkdown').classList.remove('active');
+    } else {
+        document.getElementById('quill-editor').style.display = 'none';
+        document.getElementById('markdown-editor').style.display = 'block';
+        document.getElementById('btnRichText').classList.remove('active');
+        document.getElementById('btnMarkdown').classList.add('active');
+    }
+}
+
+function submitForm() {
+    var bodyField = document.getElementById('body');
+    
+    if (currentMode === 'richtext') {
+        bodyField.value = quill.root.innerHTML;
+    } else {
+        var markdownText = document.getElementById('markdown-body').value;
+        if (markdownText) {
+            bodyField.value = marked.parse(markdownText);
+        } else {
+            bodyField.value = '';
+        }
+    }
+    
+    return true;
+}
+</script>
 
 // Markdown实时预览
 document.getElementById('markdown-body').addEventListener('input', function() {
