@@ -9,12 +9,10 @@
 .page-header { text-align: center; margin: 40px 0; }
 .page-header h1 { font-size: 2.5em; color: #333; }
 
-/* 博客布局：侧边栏 + 内容区 */
 .blog-layout { display: flex; gap: 30px; margin-top: 30px; }
 .blog-sidebar { width: 280px; flex-shrink: 0; }
 .blog-content { flex: 1; min-width: 0; }
 
-/* 日历样式 */
 .calendar {
     background: white;
     border-radius: 8px;
@@ -32,26 +30,8 @@
     text-align: center;
 }
 
-/* 年份选择器 */
-.calendar-year-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding: 8px;
-    background: #f8f9fa;
-    border-radius: 6px;
-}
-.calendar-year-nav a {
-    color: #667eea;
-    text-decoration: none;
-    font-weight: bold;
-    padding: 5px 10px;
-}
-.calendar-year-nav a:hover { background: #667eea; color: white; border-radius: 4px; }
-.calendar-year-nav .year-display { font-size: 1.3em; font-weight: bold; color: #333; }
+.calendar-year { text-align: center; font-size: 1.3em; font-weight: bold; color: #333; margin-bottom: 15px; }
 
-/* 月份网格 */
 .calendar-months {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -68,15 +48,11 @@
     color: #333;
 }
 .calendar-month:hover { background: #f0f0f0; border-color: #667eea; }
-.calendar-month.has-posts { background: #e8f4ff; border-color: #667eea; }
-.calendar-month.has-posts:hover { background: #667eea; color: white; }
 .calendar-month.active { background: #667eea; color: white; border-color: #667eea; }
 .calendar-month .month-name { font-weight: bold; font-size: 0.95em; }
 .calendar-month .post-count { font-size: 0.75em; color: #888; margin-top: 4px; }
-.calendar-month.has-posts .post-count { color: #667eea; }
 .calendar-month.active .post-count { color: rgba(255,255,255,0.8); }
 
-/* 筛选标签 */
 .filter-tags { margin-bottom: 20px; }
 .filter-tag {
     display: inline-block;
@@ -90,7 +66,6 @@
 .filter-tag a { color: white; text-decoration: none; }
 .filter-tag a:hover { text-decoration: underline; }
 
-/* 文章列表 */
 .posts-list { max-width: 100%; }
 .post-item { background: white; padding: 25px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 .post-item h2 { margin-bottom: 10px; }
@@ -101,7 +76,6 @@
 .read-more { display: inline-block; margin-top: 15px; color: #667eea; text-decoration: none; font-weight: bold; }
 .read-more:hover { text-decoration: underline; }
 
-/* 分页样式 */
 .pagination { text-align: center; margin: 40px 0; }
 .pagination a, .pagination span { display: inline-block; padding: 8px 15px; margin: 0 3px; border-radius: 5px; text-decoration: none; }
 .pagination a { background: white; color: #667eea; border: 1px solid #ddd; }
@@ -110,7 +84,6 @@
 .pagination .disabled { color: #ccc; pointer-events: none; }
 .page-info { text-align: center; color: #888; margin-bottom: 20px; }
 
-/* 响应式 */
 @media (max-width: 768px) {
     .blog-layout { flex-direction: column; }
     .blog-sidebar { width: 100%; }
@@ -128,7 +101,6 @@
     </div>
     
     <div class="blog-layout">
-        {# 日历侧边栏 #}
         <aside class="blog-sidebar">
             <div class="calendar">
                 <h3>📅 文章日历</h3>
@@ -142,55 +114,25 @@
                 </div>
                 {% endif %}
                 
-                {# 年份导航 #}
-                <div class="calendar-year-nav">
-                    {% with years=archive.keys|dictsort:"0" %}
-                    {% with first_year=years.0|last %}
-                    <a href="?year={{ first_year }}">◀</a>
-                    {% endwith %}
-                    {% endwith %}
-                    <span class="year-display">{{ filter_year|default:archive.keys|first }}年</span>
-                    {% with years=archive.keys|dictsort:"0"|reverse %}
-                    {% with last_year=years.0|last %}
-                    <a href="?year={{ last_year }}">▶</a>
-                    {% endwith %}
-                    {% endwith %}
-                </div>
+                <div class="calendar-year">{{ filter_year|default:archive.keys|first }}年</div>
                 
-                {# 月份网格 #}
                 <div class="calendar-months">
                     {% for year, months in archive.items %}
-                        {% if year|stringformat:"s" == filter_year|stringformat:"s" or not filter_year %}
-                        {% with show_year=filter_year|default:year %}
-                        {% for month in "1,2,3,4,5,6,7,8,9,10,11,12"|split:"," %}
-                        {% with m=month|add:"0" %}
-                        {% if months|length >= m %}
-                        {% with post_count=months|length %}
-                        <a href="?year={{ show_year }}&month={{ m }}" class="calendar-month {% if filter_year == show_year|stringformat:"s" and filter_month == m|add:0 %}active{% endif %}">
-                            <div class="month-name">
-                            {% if m == 1 %}一月{% elif m == 2 %}二月{% elif m == 3 %}三月{% elif m == 4 %}四月{% elif m == 5 %}五月{% elif m == 6 %}六月{% elif m == 7 %}七月{% elif m == 8 %}八月{% elif m == 9 %}九月{% elif m == 10 %}十月{% elif m == 11 %}十一月{% else %}十二月{% endif %}
-                            </div>
-                            <div class="post-count">{{ post_count }}篇</div>
-                        </a>
-                        {% endwith %}
-                        {% else %}
-                        <div class="calendar-month">
-                            <div class="month-name">
-                            {% if m == 1 %}一月{% elif m == 2 %}二月{% elif m == 3 %}三月{% elif m == 4 %}四月{% elif m == 5 %}五月{% elif m == 6 %}六月{% elif m == 7 %}七月{% elif m == 8 %}八月{% elif m == 9 %}九月{% elif m == 10 %}十月{% elif m == 11 %}十一月{% else %}十二月{% endif %}
-                            </div>
-                            <div class="post-count">-</div>
-                        </div>
-                        {% endif %}
-                        {% endwith %}
-                        {% endfor %}
-                        {% endwith %}
+                        {% if forloop.first %}
+                            {% for m, post_list in months.items|sort %}
+                            <a href="?year={{ year }}&month={{ m }}" class="calendar-month {% if filter_year == year and filter_month == m %}active{% endif %}">
+                                <div class="month-name">
+                                {% if m == 1 %}一月{% elif m == 2 %}二月{% elif m == 3 %}三月{% elif m == 4 %}四月{% elif m == 5 %}五月{% elif m == 6 %}六月{% elif m == 7 %}七月{% elif m == 8 %}八月{% elif m == 9 %}九月{% elif m == 10 %}十月{% elif m == 11 %}十一月{% else %}十二月{% endif %}
+                                </div>
+                                <div class="post-count">{{ post_list|length }}篇</div>
+                            </a>
+                            {% endfor %}
                         {% endif %}
                     {% endfor %}
                 </div>
             </div>
         </aside>
         
-        {# 文章内容区 #}
         <main class="blog-content">
             <p class="page-info">共 {% if filter_year %}{{ posts|length }}{% else %}{{ total_count }}{% endif %} 篇文章</p>
             
@@ -215,7 +157,6 @@
                 {% endfor %}
             </div>
             
-            {# 分页 #}
             {% if total_pages > 1 %}
             <div class="pagination">
                 {% if current_page > 1 %}
