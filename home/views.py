@@ -217,7 +217,6 @@ def create_article(request):
         title = request.POST.get('title')
         intro = request.POST.get('intro')
         body = request.POST.get('body')
-        date = request.POST.get('date')
         
         # 获取博客索引页
         blog_index = BlogIndexPage.objects.first()
@@ -234,22 +233,14 @@ def create_article(request):
             slug = f"{base_slug}-{counter}"
             counter += 1
         
-        # 创建文章
+        # 创建文章 - 日期自动设置为当前日期
         article = BlogPage(
             title=title,
             slug=slug,
             intro=intro[:250] if intro else title[:100],
             body=body,
+            date=timezone.now().date(),  # 自动设置为当前日期
         )
-        
-        if date:
-            from datetime import datetime
-            try:
-                article.date = datetime.strptime(date, '%Y-%m-%d').date()
-            except:
-                article.date = timezone.now().date()
-        else:
-            article.date = timezone.now().date()
         
         blog_index.add_child(instance=article)
         
@@ -277,18 +268,13 @@ def edit_article(request, slug):
         title = request.POST.get('title')
         intro = request.POST.get('intro')
         body = request.POST.get('body')
-        date = request.POST.get('date')
         
         article.title = title
         article.intro = intro[:250] if intro else title[:100]
         article.body = body
         
-        if date:
-            from datetime import datetime
-            try:
-                article.date = datetime.strptime(date, '%Y-%m-%d').date()
-            except:
-                pass
+        # 保持原有的发布日期（第一次创建时的日期）
+        # 不再允许手动修改发布日期
         
         # 保存版本并发布
         revision = article.save_revision()

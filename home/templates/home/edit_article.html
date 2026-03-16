@@ -31,11 +31,6 @@
             </div>
             
             <div class="form-group">
-                <label for="date">发布日期</label>
-                <input type="date" id="date" name="date" value="{{ article.date|date:'Y-m-d' }}">
-            </div>
-            
-            <div class="form-group">
                 <label>文章内容</label>
                 <div class="editor-toggle">
                     <button type="button" class="btn btn-sm" id="btnRichText" onclick="switchEditor('richtext')">富文本</button>
@@ -90,32 +85,9 @@
 </style>
 
 <script>
-// 检测内容是否为Markdown格式
-function isMarkdownContent(html) {
-    // 检查是否包含常见的Markdown标记
-    var markdownIndicators = [
-        /^#{1,6}\s/m,           // 标题
-        /^\s*[-*+]\s/m,         // 无序列表
-        /^\s*\d+\.\s/m,         // 有序列表
-        /\*\*[^*]+\*\*/,         // 粗体
-        /\*[^*]+\*/,             // 斜体
-        /```[\s\S]*?```/,        // 代码块
-        /`[^`]+`/,               // 行内代码
-        /\[.+\]\(.+\)/,          // 链接
-    ];
-    
-    // 如果HTML包含这些标记，可能是从Markdown转换来的
-    for (var i = 0; i < markdownIndicators.length; i++) {
-        if (markdownIndicators[i].test(html)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// 获取已有的HTML内容并尝试检测格式
-var existingBody = "{{ article.body|escapejs }}";
-var currentMode = isMarkdownContent(existingBody) ? 'markdown' : 'richtext';
+// 获取已有的内容
+var existingBody = {{ article.body|escapejs }};
+var currentMode = 'richtext'; // 默认使用富文本编辑器
 
 // 初始化Quill编辑器
 var quill = new Quill('#quill-editor', {
@@ -134,14 +106,13 @@ var quill = new Quill('#quill-editor', {
     }
 });
 
-// 如果是纯文本/HTML模式，加载内容
-if (!currentMode) {
+// 加载已有内容到富文本编辑器
+if (existingBody) {
     quill.root.innerHTML = existingBody;
-} else {
-    // 如果是Markdown模式，需要反转义HTML为Markdown（简化处理）
-    // 这里直接使用原始HTML作为内容，用户可以选择切换到富文本模式查看
-    document.getElementById('markdown-body').value = existingBody;
 }
+
+// 初始化Markdown编辑器内容
+document.getElementById('markdown-body').value = existingBody ? existingBody.replace(/<[^>]+>/g, '') : '';
 
 function switchEditor(mode) {
     currentMode = mode;
