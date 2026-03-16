@@ -131,6 +131,7 @@ class BlogIndexPage(Page):
         # 获取筛选参数
         filter_year = request.GET.get('year')
         filter_month = request.GET.get('month')
+        filter_day = request.GET.get('day')
         
         # 获取所有文章
         all_posts = list(self.get_children().specific().live())
@@ -150,7 +151,11 @@ class BlogIndexPage(Page):
             year = int(filter_year)
             if filter_month:
                 month = int(filter_month)
-                all_posts = [p for p in all_posts if self._get_post_date(p).year == year and self._get_post_date(p).month == month]
+                if filter_day:
+                    day = int(filter_day)
+                    all_posts = [p for p in all_posts if self._get_post_date(p).year == year and self._get_post_date(p).month == month and self._get_post_date(p).day == day]
+                else:
+                    all_posts = [p for p in all_posts if self._get_post_date(p).year == year and self._get_post_date(p).month == month]
             else:
                 all_posts = [p for p in all_posts if self._get_post_date(p).year == year]
         
@@ -195,6 +200,7 @@ class BlogIndexPage(Page):
         context['next_page'] = page + 1 if page < total_pages else total_pages
         context['filter_year'] = int(filter_year) if filter_year else None
         context['filter_month'] = int(filter_month) if filter_month else None
+        context['filter_day'] = int(filter_day) if filter_day else None
         
         # 生成文章归档（年份 -> 月份 -> 文章列表）
         # 重新获取所有文章用于归档（不包含筛选）
@@ -202,23 +208,27 @@ class BlogIndexPage(Page):
         all_posts_full.sort(key=sort_key, reverse=True)
         
         from collections import defaultdict
-        archive = defaultdict(lambda: defaultdict(list))
+        archive = defaultdict(list)
         
         for post in all_posts_full:
             post_date = self._get_post_date(post)
             if post_date:
-                year = post_date.year
-                month = post_date.month
-                archive[year][month].append(post)
+                key = (post_date.year, post_date.month)
+                archive[key].append(post)
         
-        # 转换为有序字典
+        # 转换为有序字典 {year: {month: [posts]}}
         archive_sorted = {}
-        for year in sorted(archive.keys(), reverse=True):
-            archive_sorted[year] = {}
-            for month in sorted(archive[year].keys(), reverse=True):
-                archive_sorted[year][month] = archive[year][month]
+        for year_month, posts in archive.items():
+            year, month = year_month
+            if year not in archive_sorted:
+                archive_sorted[year] = {}
+            archive_sorted[year][month] = posts
         
-        context['archive'] = archive_sorted
+        # 按年份和月份排序
+        for year in archive_sorted:
+            archive_sorted[year] = dict(sorted(archive_sorted[year].items(), reverse=True))
+        
+        context['archive'] = dict(sorted(archive_sorted.items(), reverse=True))
         
         return context
     
