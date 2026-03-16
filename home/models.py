@@ -99,9 +99,18 @@ class HomePage(Page):
         from home.models import BlogIndexPage
         blog_index = BlogIndexPage.objects.first()
         if blog_index:
-            # 按发布日期倒序排列，获取最近的6篇文章
-            posts = list(blog_index.get_children().specific().live().order_by('-date', '-first_published_at')[:6])
-            context['blog_posts'] = posts
+            # 获取所有文章
+            posts = list(blog_index.get_children().specific().live())
+            # 按日期倒序排列
+            def sort_key(post):
+                if hasattr(post, 'date') and post.date:
+                    return post.date
+                elif hasattr(post, 'first_published_at') and post.first_published_at:
+                    return post.first_published_at
+                return post.pk
+            posts.sort(key=sort_key, reverse=True)
+            # 取前6篇
+            context['blog_posts'] = posts[:6]
         else:
             context['blog_posts'] = []
         return context
@@ -123,11 +132,21 @@ class BlogIndexPage(Page):
         page = int(request.GET.get('page', 1))
         per_page = 10
         
-        # 获取所有文章并按发布日期倒序（先按date排序，date为空时用first_published_at）
-        all_posts = self.get_children().specific().live().order_by('-date', '-first_published_at')
+        # 获取所有文章
+        all_posts = list(self.get_children().specific().live())
+        
+        # 按日期倒序排序（先按date排序，date为空时用first_published_at）
+        def sort_key(post):
+            if hasattr(post, 'date') and post.date:
+                return post.date
+            elif hasattr(post, 'first_published_at') and post.first_published_at:
+                return post.first_published_at
+            return post.pk  # 如果都没有，使用pk作为后备
+        
+        all_posts.sort(key=sort_key, reverse=True)
         
         # 计算总数
-        total_count = all_posts.count()
+        total_count = len(all_posts)
         total_pages = (total_count + per_page - 1) // per_page
         
         # 确保页码有效
@@ -139,7 +158,7 @@ class BlogIndexPage(Page):
         # 获取当前页的文章
         start = (page - 1) * per_page
         end = start + per_page
-        posts = list(all_posts[start:end])
+        posts = all_posts[start:end]
         
         # 生成页码范围（显示最多10页）
         page_range = []
