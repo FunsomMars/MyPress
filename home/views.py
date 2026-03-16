@@ -122,11 +122,10 @@ MyPress 团队
             )
             messages.success(request, f'注册成功！请前往 {email} 查收验证邮件，点击链接完成验证。')
         except Exception as e:
-            # 邮件发送失败时，直接激活用户（开发环境）
-            user.is_active = True
-            user.save()
-            login(request, user)
-            messages.success(request, '注册成功！（邮件发送失败，已自动激活）')
+            # 邮件发送失败时，仍然创建未激活用户，等待手动激活
+            # 可以记录日志或在管理后台处理
+            print(f"邮件发送失败: {e}")
+            messages.warning(request, f'注册成功！但邮件发送失败，请联系管理员激活账户。')
         
         return redirect('/')
     

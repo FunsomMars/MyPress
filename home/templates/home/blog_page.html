@@ -111,5 +111,34 @@
     </article>
 </div>
 
+<script>
+document.getElementById('comment-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const form = this;
+    const formData = new FormData(form);
+    const action = form.action;
+    
+    fetch(action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 刷新页面以显示新评论
+            location.reload();
+        } else {
+            alert(data.error || '评论失败，请重试');
+        }
+    })
+    .catch(error => {
+        // 如果不是JSON响应，尝试普通表单提交
+        form.submit();
+    });
+});
 </script>
 {% endblock %}
