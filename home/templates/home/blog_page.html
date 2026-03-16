@@ -46,7 +46,7 @@
                 {% if page.date %}
                 发布于 {{ page.date|date:"Y年m月d日" }}
                 {% endif %}
-                {% if page.latest_revision_created_at and page.latest_revision_created_at > page.first_published_at %}
+                {% if page.latest_revision_created_at %}
                 {% if page.date %} · {% endif %}最近修改于 {{ page.latest_revision_created_at|date:"Y年m月d日" }}
                 {% endif %}
             </div>
