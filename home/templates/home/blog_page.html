@@ -111,31 +111,5 @@
     </article>
 </div>
 
-<script>
-// Parse WordPress audio shortcode [audio mp3="..."]
-document.addEventListener('DOMContentLoaded', function() {
-    var content = document.querySelector('.article-content');
-    if (!content) return;
-    
-    // Find all audio shortcode tags
-    var audioTags = content.querySelectorAll('[data-audio]');
-    audioTags.forEach(function(tag) {
-        var mp3Url = tag.getAttribute('data-audio');
-        var audio = document.createElement('audio');
-        audio.controls = true;
-        audio.preload = 'auto';
-        audio.src = mp3Url;
-        audio.style.width = '100%';
-        audio.style.margin = '20px 0';
-        tag.parentNode.replaceChild(audio, tag);
-    });
-    
-    // Also handle legacy format: [audio mp3="url"][/audio]
-    var html = content.innerHTML;
-    var regex = /\[audio\s+mp3="([^"]+)"\s*(preload="([^"]+)")?\s*\][\/audio\]/g;
-    content.innerHTML = html.replace(regex, function(match, url, preloadAttr, preload) {
-        return '<audio controls preload="' + (preload || 'auto') + '" src="' + url + '" style="width:100%;margin:20px 0;"></audio>';
-    });
-});
 </script>
 {% endblock %}
