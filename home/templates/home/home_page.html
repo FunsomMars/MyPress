@@ -28,7 +28,7 @@
     <div class="content-section">
         <h2 style="text-align: center; margin-bottom: 30px;">最新文章</h2>
         <div class="posts-grid">
-        {% for post in blog_posts|slice:":6" %}
+        {% for post in blog_posts %}
             <div class="post-card" style="background: white; padding: 20px; margin: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <h3><a href="{% pageurl post %}" style="color: #333; text-decoration: none;">{{ post.title }}</a></h3>
                 {% if post.date %}
