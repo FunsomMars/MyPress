@@ -49,6 +49,41 @@ class EmailVerification(models.Model):
         return verification
 
 
+class GroupApplication(models.Model):
+    """用户组申请模型"""
+    STATUS_CHOICES = [
+        ('pending', '待审批'),
+        ('approved', '已批准'),
+        ('rejected', '已拒绝'),
+    ]
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='group_applications'
+    )
+    requested_group = models.CharField(max_length=100)  # Editors, Moderators
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_applications'
+    )
+    review_note = models.TextField(blank=True)  # 审批备注
+    
+    class Meta:
+        verbose_name = "用户组申请"
+        verbose_name_plural = "用户组申请"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} -> {self.requested_group} ({self.status})"
+
+
 class HomePage(Page):
     intro = RichTextField(blank=True, help_text="Introduction text for the homepage")
     template = 'home/index.html'

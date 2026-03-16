@@ -395,32 +395,171 @@ def user_profile(request):
     # 获取用户所属组
     user_groups = request.user.groups.all()
     
+    # 获取我的申请
+    from home.models import GroupApplication
+    my_applications = GroupApplication.objects.filter(user=request.user)
+    
+    # 获取待审批申请（仅管理员可见）
+    pending_applications = []
+    if request.user.is_superuser:
+        pending_applications = GroupApplication.objects.filter(status='pending')
+    
     return render(request, 'home/profile.html', {
         'user_articles': user_articles,
         'user_groups': user_groups,
-        'can_manage': can_manage
+        'can_manage': can_manage,
+        'my_applications': my_applications,
+        'pending_applications': pending_applications
     })
 
 
 @login_required
 def join_group(request, group_name):
-    """用户申请加入用户组"""
+    """用户申请加入用户组（需要管理员审批）"""
     from django.contrib.auth.models import Group
+    from django.conf import settings
     
-    # 只有特定组可以申请加入
+    # 只有特定组需要审批
     allowed_groups = ['Editors', 'Moderators']
     if group_name not in allowed_groups:
         messages.error(request, '无效的用户组')
         return redirect('/accounts/profile/')
     
-    try:
-        group = Group.objects.get(name=group_name)
-        if request.user.groups.filter(name=group_name).exists():
-            messages.info(request, f'您已经是 {group_name} 组的成员')
-        else:
-            request.user.groups.add(group)
-            messages.success(request, f'已成功加入 {group_name} 组！')
-    except Group.DoesNotExist:
-        messages.error(request, '用户组不存在')
+    # 检查是否已是该组成员
+    if request.user.groups.filter(name=group_name).exists():
+        messages.info(request, f'您已经是 {group_name} 组的成员')
+        return redirect('/accounts/profile/')
     
+    # 检查是否有待审批的申请
+    from home.models import GroupApplication
+    existing_app = GroupApplication.objects.filter(
+        user=request.user,
+        requested_group=group_name,
+        status='pending'
+    ).first()
+    
+    if existing_app:
+        messages.info(request, f'您已有待审批的 {group_name} 组申请，请耐心等待')
+        return redirect('/accounts/profile/')
+    
+    # 创建申请
+    application = GroupApplication.objects.create(
+        user=request.user,
+        requested_group=group_name,
+        status='pending'
+    )
+    
+    # 发送邮件通知所有管理员
+    admins = User.objects.filter(is_superuser=True)
+    admin_emails = [a.email for a in admins if a.email]
+    
+    if admin_emails:
+        from django.conf import settings
+        from django.core.mail import send_mail
+        
+        try:
+            send_mail(
+                subject=f'【MyPress】新用户组申请 - {request.user.username} 申请加入 {group_name}',
+                message=f'''管理员您好，
+
+用户 {request.user.username} ({request.user.email}) 申请加入 {group_name} 用户组。
+
+请登录后台审批：https://www.mspace.top/accounts/profile/
+
+---
+MyPress 系统
+''',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=admin_emails,
+                fail_silently=True,
+            )
+        except Exception as e:
+            print(f"邮件发送失败: {e}")
+    
+    messages.success(request, f'申请已提交！请等待管理员审批。审批结果将发送到您的邮箱。')
+    return redirect('/accounts/profile/')
+
+
+def approve_application(request, application_id):
+    """审批用户组申请"""
+    if not request.user.is_superuser:
+        messages.error(request, '只有超级管理员可以审批申请')
+        return redirect('/accounts/profile/')
+    
+    application = get_object_or_404(GroupApplication, id=application_id, status='pending')
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        note = request.POST.get('note', '')
+        
+        if action == 'approve':
+            # 批准申请
+            from django.contrib.auth.models import Group
+            group = Group.objects.get(name=application.requested_group)
+            application.user.groups.add(group)
+            application.status = 'approved'
+            application.reviewed_by = request.user
+            application.review_note = note
+            application.save()
+            
+            # 通知用户
+            from django.core.mail import send_mail
+            try:
+                send_mail(
+                    subject='【MyPress】您的用户组申请已批准',
+                    message=f'''{application.user.username} 您好，
+
+您的 {application.requested_group} 用户组申请已通过审批！
+
+您现在可以享受该用户组的权限了。
+
+---
+MyPress 系统
+''',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[application.user.email],
+                    fail_silently=True,
+                )
+            except:
+                pass
+            
+            messages.success(request, f'已批准 {application.user.username} 的申请')
+        else:
+            # 拒绝申请
+            application.status = 'rejected'
+            application.reviewed_by = request.user
+            application.review_note = note
+            application.save()
+            
+            # 通知用户
+            from django.core.mail import send_mail
+            try:
+                send_mail(
+                    subject='【MyPress】您的用户组申请被拒绝',
+                    message=f'''{application.user.username} 您好，
+
+您的 {application.requested_group} 用户组申请被拒绝。
+
+拒绝原因：{note or '无'}
+
+---
+MyPress 系统
+''',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[application.user.email],
+                    fail_silently=True,
+                )
+            except:
+                pass
+            
+            messages.info(request, f'已拒绝 {application.user.username} 的申请')
+    
+    return redirect('/accounts/profile/')
+
+
+def cancel_application(request, application_id):
+    """用户取消申请"""
+    application = get_object_or_404(GroupApplication, id=application_id, user=request.user, status='pending')
+    application.delete()
+    messages.success(request, '申请已取消')
     return redirect('/accounts/profile/')
