@@ -114,7 +114,7 @@
         {% if messages %}
         <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
             {% for message in messages %}
-            <div class="toast-message alert alert-{{ message.tags }}" style="
+            <div class="toast-message alert alert-{{ message.tags }}" data-delay="3000" style="
                 background: white;
                 padding: 15px 20px;
                 margin-bottom: 10px;
@@ -127,17 +127,28 @@
             </div>
             {% endfor %}
         </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toasts = document.querySelectorAll('.toast-message');
+            toasts.forEach(function(toast) {
+                var delay = parseInt(toast.getAttribute('data-delay') || 3000);
+                setTimeout(function() {
+                    toast.style.animation = 'fadeOut 0.5s ease forwards';
+                    setTimeout(function() {
+                        toast.remove();
+                    }, 500);
+                }, delay);
+            });
+        });
+        </script>
         <style>
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-        .toast-message {
-            animation: slideIn 0.3s ease, fadeOut 0.3s ease 4.7s forwards;
-        }
         @keyframes fadeOut {
             from { opacity: 1; }
-            to { opacity: 0; }
+            to { opacity: 0; transform: translateX(100%); }
         }
         </style>
         {% endif %}
