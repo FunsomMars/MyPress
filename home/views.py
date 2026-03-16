@@ -382,6 +382,9 @@ def user_profile(request):
     if not request.user.is_authenticated:
         return redirect('/accounts/login/')
     
+    # 检查用户是否可以管理文章（超级管理员或Editors/Moderators组）
+    can_manage = request.user.is_superuser or request.user.groups.filter(name__in=['Editors', 'Moderators']).exists()
+    
     # 获取用户创建的文章
     from wagtail.models import Page
     user_articles = Page.objects.filter(
@@ -394,7 +397,8 @@ def user_profile(request):
     
     return render(request, 'home/profile.html', {
         'user_articles': user_articles,
-        'user_groups': user_groups
+        'user_groups': user_groups,
+        'can_manage': can_manage
     })
 
 

@@ -6,9 +6,11 @@
         <h2>个人中心</h2>
         <p>欢迎, <strong>{{ user.username }}</strong>!</p>
         <p>邮箱: {{ user.email }}</p>
-        <p>身份: 
+        <p>用户组: 
             {% if user.is_superuser %}
             <span style="color: red; font-weight: bold;">超级管理员</span>
+            {% elif user.groups.exists %}
+            {% for g in user.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
             {% else %}
             普通用户
             {% endif %}
@@ -16,36 +18,48 @@
     </div>
     
     <div class="profile-content">
-        <h3>我的用户组</h3>
+        <h3>用户组权限说明</h3>
         
-        {% if user_groups %}
-        <div class="user-groups">
-            {% for group in user_groups %}
-            <span class="badge" style="display: inline-block; padding: 5px 15px; background: #667eea; color: white; border-radius: 20px; margin-right: 10px;">{{ group.name }}</span>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p>您还没有加入任何用户组。加入用户组后可以享受更多权限！</p>
-        {% endif %}
-        
-        <div style="margin-top: 15px;">
-            {% if not user.is_superuser %}
-                {% if not user_groups %}
-                <a href="{% url 'join_group' 'Editors' %}" class="btn btn-sm btn-primary">申请加入 Editors 组</a>
-                <a href="{% url 'join_group' 'Moderators' %}" class="btn btn-sm">申请加入 Moderators 组</a>
-                {% else %}
-                <p style="color: green; font-size: 0.9em;">✓ 您已是用户组成员</p>
-                {% endif %}
-            {% else %}
-            <p style="color: red; font-size: 0.9em;">* 超级管理员无需加入用户组</p>
-            {% endif %}
-        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+                <tr style="background: #f8f9fa;">
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">用户组</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">权限</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">游客</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">浏览文章、查看页面</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">普通用户</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">游客权限 + 发表评论</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Editors（编辑）</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">普通用户权限 + 创建/编辑自己的文章</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Moderators（版主）</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Editors权限 + 删除任意文章、管理评论</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd; background: #fff3cd;">管理员</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; background: #fff3cd;">Moderators权限 + 管理所有文章</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd; background: #f8d7da;">超级管理员</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; background: #f8d7da;">最高权限 + 系统管理</td>
+                </tr>
+            </tbody>
+        </table>
         
         <hr style="margin: 30px 0;">
         
         <h3>我的文章</h3>
         
-        {% if user_articles %}
+        {% if can_manage %}
         <div class="article-list">
             {% for article in user_articles %}
             <div class="article-item" style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
@@ -61,9 +75,20 @@
         <p>您还没有创建任何文章。</p>
         {% endif %}
         
+        {% if can_manage %}
         <div class="profile-actions" style="margin-top: 20px;">
             <a href="{% url 'create_article' %}" class="btn btn-primary">创建新文章</a>
         </div>
+        {% else %}
+        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 5px;">
+            <p>您没有创建文章的权限。请联系管理员申请加入 Editors 或 Moderators 用户组。</p>
+            {% if not user.is_superuser and not user.groups.exists %}
+            <div style="margin-top: 10px;">
+                <a href="{% url 'join_group' 'Editors' %}" class="btn btn-sm btn-primary">申请加入 Editors 组</a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
