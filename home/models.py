@@ -5,6 +5,47 @@ from django.conf import settings
 from wagtail.models import Page
 from wagtail.fields import RichTextField
 from wagtail.admin.panels import FieldPanel
+import uuid
+
+
+class EmailVerification(models.Model):
+    """邮箱验证模型"""
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='email_verification'
+    )
+    verification_code = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    
+    class Meta:
+        verbose_name = "邮箱验证"
+        verbose_name_plural = "邮箱验证"
+    
+    def __str__(self):
+        return f"{self.user.email} - 验证"
+    
+    def is_valid(self):
+        """检查验证码是否有效"""
+        return timezone.now() < self.expires_at
+    
+    @staticmethod
+    def create_for_user(user):
+        """为用户创建验证记录"""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # 删除旧的验证记录
+        EmailVerification.objects.filter(user=user).delete()
+        
+        # 创建新的验证记录，24小时有效
+        verification = EmailVerification.objects.create(
+            user=user,
+            verification_code=uuid.uuid4().hex,
+            expires_at=timezone.now() + timedelta(hours=24)
+        )
+        return verification
 
 
 class HomePage(Page):

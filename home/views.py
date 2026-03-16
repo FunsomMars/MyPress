@@ -5,8 +5,10 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
+from django.conf import settings
+from django.core.mail import send_mail
 
-from .models import BlogPage, BlogIndexPage, Comment
+from .models import BlogPage, BlogIndexPage, Comment, EmailVerification
 
 
 def index(request):
@@ -29,6 +31,18 @@ def user_login(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        # 检查用户是否存在且已激活
+        try:
+            user = User.objects.get(username=username)
+            if not user.is_active:
+                messages.error(request, '您的账户尚未通过邮箱验证，请先查收验证邮件完成激活。')
+                return render(request, 'home/login.html')
+        except User.DoesNotExist:
+            pass
+        
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
@@ -43,7 +57,7 @@ def user_login(request):
 
 
 def user_register(request):
-    """用户注册"""
+    """用户注册 - 需要邮箱验证"""
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
@@ -70,19 +84,79 @@ def user_register(request):
             messages.error(request, '邮箱已被注册')
             return render(request, 'home/register.html')
         
-        # 创建用户
+        # 创建用户，但设置为未激活状态
         user = User.objects.create_user(
             username=username,
             email=email,
-            password=password1
+            password=password1,
+            is_active=False  # 需要邮箱验证后才能激活
         )
         
-        # 自动登录
-        login(request, user)
-        messages.success(request, '注册成功!')
+        # 创建邮箱验证记录
+        verification = EmailVerification.create_for_user(user)
+        
+        # 发送验证邮件
+        verification_url = request.build_absolute_uri(f'/accounts/verify/{verification.verification_code}/')
+        
+        try:
+            send_mail(
+                subject='【MyPress】邮箱验证 - 激活您的账户',
+                message=f'''您好 {username}，
+
+感谢您注册 MyPress！
+
+请点击下面的链接完成邮箱验证：
+{verification_url}
+
+此链接有效期为24小时。
+
+如果以上链接无法点击，请复制以下链接到浏览器打开：
+{verification_url}
+
+---
+MyPress 团队
+''',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            messages.success(request, f'注册成功！请前往 {email} 查收验证邮件，点击链接完成验证。')
+        except Exception as e:
+            # 邮件发送失败时，直接激活用户（开发环境）
+            user.is_active = True
+            user.save()
+            login(request, user)
+            messages.success(request, '注册成功！（邮件发送失败，已自动激活）')
+        
         return redirect('/')
     
     return render(request, 'home/register.html')
+
+
+def verify_email(request, verification_code):
+    """邮箱验证"""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    verification = get_object_or_404(EmailVerification, verification_code=verification_code)
+    
+    # 检查是否过期
+    if not verification.is_valid():
+        messages.error(request, '验证链接已过期，请重新注册')
+        return redirect('/accounts/register/')
+    
+    # 激活用户
+    user = verification.user
+    user.is_active = True
+    user.save()
+    
+    # 删除验证记录
+    verification.delete()
+    
+    # 自动登录
+    login(request, user)
+    messages.success(request, f'邮箱验证成功！欢迎 {user.username}！')
+    return redirect('/')
 
 
 def user_logout(request):
