@@ -43,7 +43,9 @@
             <div class="post-item">
                 <h2><a href="{% pageurl post %}">{{ post.title }}</a></h2>
                 <div class="post-meta">
-                    {% if post.first_published_at %}
+                    {% if post.date %}
+                    发布于 {{ post.date|date:"Y年m月d日" }}
+                    {% elif post.first_published_at %}
                     发布于 {{ post.first_published_at|date:"Y年m月d日" }}
                     {% endif %}
                 </div>
