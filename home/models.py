@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.utils import timezone
 
 from wagtail.models import Page
 from wagtail.fields import RichTextField
