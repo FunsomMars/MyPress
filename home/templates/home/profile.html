@@ -12,7 +12,7 @@
             {% if user.is_superuser %}
             <span style="color: red; font-weight: bold;">超级管理员</span>
             {% elif user.groups.exists %}
-            {% for g in user.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            {% for g in user.groups.all %}{% if g.name == 'Editors' %}编辑{% elif g.name == 'Moderators' %}版主{% else %}{{ g.name }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}
             {% else %}
             普通用户
             {% endif %}
