@@ -14,10 +14,12 @@ def index(request):
     """首页"""
     from home.models import BlogIndexPage
     
-    # 获取博客索引页的文章
+    # 获取博客索引页的文章，按日期排序（最新优先）
     blog_index = BlogIndexPage.objects.first()
     if blog_index:
-        blog_posts = blog_index.get_children().specific().live()
+        blog_posts = list(blog_index.get_children().specific().live())
+        # 按日期倒序排序
+        blog_posts.sort(key=lambda x: x.date, reverse=True)
     else:
         blog_posts = []
     
