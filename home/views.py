@@ -320,7 +320,7 @@ def user_profile(request):
 def join_group(request, group_name):
     """用户申请加入用户组"""
     # 只有特定组可以申请加入
-    allowed_groups = ['Editors', 'Moderators']
+    allowed_groups = ['Editors', 'Moderators', 'Administrators']
     if group_name not in allowed_groups:
         messages.error(request, '无效的用户组')
         return redirect('/accounts/profile/')
@@ -347,6 +347,11 @@ def join_group(request, group_name):
         messages.error(request, '版主不能申请编辑权限')
         return redirect('/accounts/profile/')
     
+    # 管理员不能申请版主/编辑
+    if group_name in ['Editors', 'Moderators'] and request.user.groups.filter(name='Administrators').exists():
+        messages.error(request, '管理员不能申请低级权限')
+        return redirect('/accounts/profile/')
+    
     # 创建申请记录
     application = GroupApplication.objects.create(
         user=request.user,
@@ -354,7 +359,7 @@ def join_group(request, group_name):
         status='pending'
     )
     
-    group_display = '编辑' if group_name == 'Editors' else '版主'
+    group_display = '编辑' if group_name == 'Editors' else ('版主' if group_name == 'Moderators' else '管理员')
     messages.success(request, f'您的{group_display}权限申请已提交，请等待审批！')
     
     return redirect('/accounts/profile/')
@@ -383,7 +388,7 @@ def approve_application(request, application_id):
     group = Group.objects.get(name=application.requested_group)
     application.user.groups.add(group)
     
-    group_display = '编辑' if application.requested_group == 'Editors' else '版主'
+    group_display = '编辑' if application.requested_group == 'Editors' else ('版主' if application.requested_group == 'Moderators' else '管理员')
     messages.success(request, f'已批准 {application.user.username} 的{group_display}权限申请')
     
     return redirect('/accounts/profile/')
@@ -405,7 +410,7 @@ def reject_application(request, application_id):
     application.reviewed_by = request.user
     application.save()
     
-    group_display = '编辑' if application.requested_group == 'Editors' else '版主'
+    group_display = '编辑' if application.requested_group == 'Editors' else ('版主' if application.requested_group == 'Moderators' else '管理员')
     messages.success(request, f'已拒绝 {application.user.username} 的{group_display}权限申请')
     
     return redirect('/accounts/profile/')
