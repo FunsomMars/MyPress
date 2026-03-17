@@ -55,6 +55,9 @@ data/
 .env
 .env.local
 
+# Memory
+memory/
+
 # Testing
 .coverage
 htmlcov/
