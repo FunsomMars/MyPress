@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-box">
+        <h2>用户注册</h2>
+        
+        {% if error_message %}
+        <div class="messages">
+            <div class="alert alert-error">{{ error_message }}</div>
+            {% if show_login_link %}
+            <p>如果这是您的账号，请直接 <a href="{% url 'account_login' %}">登录</a>，或联系管理员找回。</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="post" action="{% url 'account_register' %}">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">邮箱</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password1">密码</label>
+                <input type="password" id="password1" name="password1" required minlength="6">
+            </div>
+            
+            <div class="form-group">
+                <label for="password2">确认密码</label>
+                <input type="password" id="password2" name="password2" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">注册</button>
+        </form>
+        
+        <div class="auth-links">
+            <p>已有账号? <a href="{% url 'account_login' %}">立即登录</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

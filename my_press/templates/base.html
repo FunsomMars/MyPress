@@ -1,0 +1,193 @@
+{% load static wagtailcore_tags wagtailuserbar %}
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <title>
+            {% block title %}
+            {% if page.seo_title %}{{ page.seo_title }}{% else %}{{ page.title }}{% endif %}
+            {% endblock %}
+            {% block title_suffix %}
+            {% wagtail_site as current_site %}
+            {% if current_site and current_site.site_name %}- {{ current_site.site_name }}{% endif %}
+            {% endblock %}
+        </title>
+        {% if page.search_description %}
+        <meta name="description" content="{{ page.search_description }}" />
+        {% endif %}
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" type="image/x-icon" href="/media/favicon.ico">
+
+        {# Force all links in the live preview panel to be opened in a new tab #}
+        {% if request.in_preview_panel %}
+        <base target="_blank">
+        {% endif %}
+
+        {# Global stylesheets #}
+        <link rel="stylesheet" type="text/css" href="{% static 'css/my_press.css' %}">
+        
+        <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }
+        a { color: #667eea; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        
+        /* 导航栏 */
+        .navbar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .navbar-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .navbar-brand { color: white; font-size: 1.5em; font-weight: bold; text-decoration: none; }
+        .navbar-menu { display: flex; gap: 20px; align-items: center; }
+        .navbar-menu a { color: rgba(255,255,255,0.9); text-decoration: none; transition: color 0.3s; }
+        .navbar-menu a:hover { color: white; text-decoration: none; }
+        .navbar-user { display: flex; gap: 15px; align-items: center; }
+        .navbar-user a { padding: 8px 15px; border-radius: 20px; background: rgba(255,255,255,0.2); transition: background 0.3s; }
+        .navbar-user a:hover { background: rgba(255,255,255,0.3); }
+        
+        /* 按钮样式 */
+        .btn { display: inline-block; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; font-size: 14px; transition: all 0.3s; }
+        .btn:hover { background: #5568d3; text-decoration: none; }
+        .btn-primary { background: #667eea; }
+        .btn-secondary { background: #6c757d; }
+        .btn-danger { background: #dc3545; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        
+        /* 表单样式 */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #333; }
+        .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; transition: border-color 0.3s; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
+        
+        /* 认证页面 */
+        .auth-container { max-width: 400px; margin: 60px auto; padding: 20px; }
+        .auth-box { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .auth-box h2 { text-align: center; margin-bottom: 30px; color: #333; }
+        .auth-box button { width: 100%; padding: 12px; font-size: 16px; }
+        .auth-links { text-align: center; margin-top: 20px; }
+        
+        /* 编辑器页面 */
+        .editor-container { max-width: 800px; margin: 40px auto; padding: 20px; }
+        .editor-box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .editor-box h2 { margin-bottom: 25px; color: #333; }
+        .form-actions { display: flex; gap: 15px; margin-top: 20px; }
+        
+        /* 确认页面 */
+        .confirm-container { max-width: 500px; margin: 60px auto; padding: 20px; }
+        .confirm-box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
+        .confirm-box h2 { margin-bottom: 20px; color: #333; }
+        .confirm-box .warning { color: #dc3545; font-weight: bold; margin: 20px 0; }
+        
+        /* 个人中心 */
+        .profile-container { max-width: 900px; margin: 40px auto; padding: 20px; }
+        .profile-header { background: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .profile-content { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .profile-actions { margin-top: 20px; }
+        
+        /* 消息提示 */
+        .messages { margin-bottom: 20px; }
+        .alert { padding: 12px 20px; border-radius: 5px; margin-bottom: 10px; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-error { background: #f8d7da; color: #721c24; }
+        .alert-info { background: #d1ecf1; color: #0c5460; }
+        
+        /* 表格样式 */
+        .comments-table { width: 100%; border-collapse: collapse; background: white; }
+        .comments-table th, .comments-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        .comments-table th { background: #f8f9fa; font-weight: 600; }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .navbar-content { flex-direction: column; gap: 15px; }
+            .navbar-menu { flex-wrap: wrap; justify-content: center; }
+        }
+        </style>
+
+        {% block extra_css %}
+        {# Override this in templates to add extra stylesheets #}
+        {% endblock %}
+    </head>
+
+    <body class="{% block body_class %}{% endblock %}">
+        {% wagtailuserbar %}
+        
+        {# Toast消息通知 #}
+        {% if messages %}
+        <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+            {% for message in messages %}
+            <div class="toast-message alert alert-{{ message.tags }}" data-delay="3000" style="
+                background: white;
+                padding: 15px 20px;
+                margin-bottom: 10px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideIn 0.3s ease;
+                min-width: 250px;
+            ">
+                {{ message|safe }}
+            </div>
+            {% endfor %}
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toasts = document.querySelectorAll('.toast-message');
+            toasts.forEach(function(toast) {
+                var delay = parseInt(toast.getAttribute('data-delay') || 3000);
+                setTimeout(function() {
+                    toast.style.animation = 'fadeOut 0.5s ease forwards';
+                    setTimeout(function() {
+                        toast.remove();
+                    }, 500);
+                }, delay);
+            });
+        });
+        </script>
+        <style>
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; transform: translateX(100%); }
+        }
+        </style>
+        {% endif %}
+        
+        <nav class="navbar">
+            <div class="navbar-content">
+                <a href="/" class="navbar-brand">MyPress</a>
+                <div class="navbar-menu">
+                    <a href="/">首页</a>
+                    <a href="/blog/">博客</a>
+                    <a href="/about/">关于</a>
+                    <a href="/essay/">随笔</a>
+                    <a href="/video/">视频</a>
+                    <a href="/cloudmusic/">音乐</a>
+                    <a href="/debian/">Linux</a>
+                </div>
+                <div class="navbar-user">
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'account_profile' %}">{{ user.username }}</a>
+                    <a href="{% url 'create_article' %}">写文章</a>
+                    {% if user.is_superuser %}
+                    <a href="/manage/comments/">评论管理</a>
+                    {% endif %}
+                    <a href="{% url 'account_logout' %}">退出</a>
+                    {% else %}
+                    <a href="{% url 'account_login' %}">登录</a>
+                    <a href="{% url 'account_register' %}">注册</a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+
+        {% block content %}{% endblock %}
+
+        {# Global javascript #}
+        <script type="text/javascript" src="{% static 'js/my_press.js' %}"></script>
+
+        {% block extra_js %}
+        {# Override this in templates to add extra javascript #}
+        {% endblock %}
+    </body>
+</html>

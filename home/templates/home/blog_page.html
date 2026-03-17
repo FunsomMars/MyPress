@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% load static wagtailcore_tags %}
+
+{% block body_class %}template-blogpage{% endblock %}
+
+{% block content %}
+<style>
+.container { max-width: 800px; margin: 0 auto; padding: 20px; }
+.article-header { text-align: center; margin: 40px 0; }
+.article-header h1 { font-size: 2em; color: #333; margin-bottom: 15px; }
+.article-meta { color: #888; font-size: 0.9em; margin-bottom: 20px; }
+.article-content { line-height: 1.8; color: #333; }
+.article-content p { margin-bottom: 20px; }
+.article-content img { max-width: 100%; height: auto; border-radius: 4px; margin: 20px 0; }
+.article-content pre { background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; }
+.article-content code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+.back-link { display: inline-block; margin-top: 30px; color: #667eea; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+.article-actions { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+.article-actions a { margin-right: 10px; color: #667eea; text-decoration: none; }
+.article-actions a:hover { text-decoration: underline; }
+.article-actions .delete { color: #dc3545; }
+
+/* 评论样式 */
+.comments-section { margin-top: 50px; padding-top: 30px; border-top: 1px solid #eee; }
+.comments-section h3 { margin-bottom: 20px; }
+.comment-form { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+.comment-form textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; min-height: 100px; font-family: inherit; }
+.comment-form input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px; }
+.comment-form button { margin-top: 10px; }
+.comment-list { list-style: none; padding: 0; }
+.comment-item { padding: 15px; border-bottom: 1px solid #eee; }
+.comment-item:last-child { border-bottom: none; }
+.comment-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.comment-author { font-weight: bold; color: #333; }
+.comment-date { color: #888; font-size: 0.85em; }
+.comment-content { line-height: 1.6; color: #555; }
+.login-hint { color: #666; font-style: italic; margin-bottom: 15px; }
+</style>
+
+<div class="container">
+    <article>
+        <div class="article-header">
+            <h1>{{ page.title }}</h1>
+            <div class="article-meta">
+                {% if page.date %}
+                发布于 {{ page.date|date:"Y年m月d日" }}
+                {% endif %}
+                {% if page.latest_revision_created_at %}
+                {% if page.date %} · {% endif %}最近修改于 {{ page.latest_revision_created_at|date:"Y年m月d日" }}
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if user.is_authenticated and user == page.owner or user.is_superuser %}
+        <div class="article-actions">
+            <a href="{% url 'edit_article' page.slug %}">编辑文章</a>
+            <a href="{% url 'delete_article' page.slug %}" class="delete" onclick="return confirm('确定要删除这篇文章吗?')">删除文章</a>
+        </div>
+        {% endif %}
+        
+        <div class="article-content">
+            {% if page.body %}
+                {{ page.body|safe }}
+            {% else %}
+                <p>暂无内容</p>
+            {% endif %}
+        </div>
+        
+        <a href="/blog/" class="back-link">← 返回博客列表</a>
+        
+        <!-- 评论区域 -->
+        <div class="comments-section">
+            <h3>评论 ({{ comments|length }})</h3>
+            
+            <!-- 评论表单 -->
+            <div class="comment-form">
+                {% if user.is_authenticated %}
+                <p>发表评论 (登录为: <strong>{{ user.username }}</strong>)</p>
+                <form id="comment-form" method="post" action="{% url 'add_comment' page.slug %}">
+                    {% csrf_token %}
+                    <textarea name="content" placeholder="写下您的评论..." required></textarea>
+                    <button type="submit" class="btn btn-primary">发表评论</button>
+                </form>
+                {% else %}
+                <p class="login-hint">请 <a href="{% url 'account_login' %}">登录</a> 后发表评论，或填写以下信息:</p>
+                <form id="comment-form" method="post" action="{% url 'add_comment' page.slug %}">
+                    {% csrf_token %}
+                    <input type="text" name="author_name" placeholder="用户名" required style="width: 150px;">
+                    <input type="email" name="author_email" placeholder="邮箱" required style="width: 200px;">
+                    <textarea name="content" placeholder="写下您的评论..." required></textarea>
+                    <button type="submit" class="btn btn-primary">发表评论</button>
+                </form>
+                {% endif %}
+            </div>
+            
+            <!-- 评论列表 -->
+            {% if comments %}
+            <ul class="comment-list">
+                {% for comment in comments %}
+                <li class="comment-item">
+                    <div class="comment-header">
+                        <span class="comment-author">{{ comment.author_name }}</span>
+                        <span class="comment-date">{{ comment.created_at|date:"Y-m-d H:i" }}</span>
+                    </div>
+                    <div class="comment-content">{{ comment.content }}</div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>暂无评论，快来发表第一条评论吧!</p>
+            {% endif %}
+        </div>
+    </article>
+</div>
+
+<script>
+document.getElementById('comment-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const form = this;
+    const formData = new FormData(form);
+    const action = form.action;
+    
+    fetch(action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 刷新页面以显示新评论
+            location.reload();
+        } else {
+            alert(data.error || '评论失败，请重试');
+        }
+    })
+    .catch(error => {
+        // 如果不是JSON响应，尝试普通表单提交
+        form.submit();
+    });
+});
+</script>
+{% endblock %}

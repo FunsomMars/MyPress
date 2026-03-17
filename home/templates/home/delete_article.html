@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="confirm-container">
+    <div class="confirm-box">
+        <h2>确认删除</h2>
+        
+        <p>您确定要删除文章 <strong>"{{ article.title }}"</strong> 吗?</p>
+        <p class="warning">此操作不可恢复!</p>
+        
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="post" action="{% url 'delete_article' article.slug %}">
+            {% csrf_token %}
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-danger">确认删除</button>
+                <a href="/blog/{{ article.slug }}/" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

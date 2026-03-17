@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load static wagtailcore_tags %}
+
+{% block body_class %}template-homepage{% endblock %}
+
+{% block content %}
+<style>
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+.hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px 20px; text-align: center; border-radius: 8px; margin-bottom: 40px; }
+.hero h1 { font-size: 3em; margin-bottom: 20px; }
+.hero p { font-size: 1.5em; opacity: 0.9; }
+.content-section { padding: 40px 0; }
+.btn { display: inline-block; background: white; color: #667eea; padding: 12px 30px; border-radius: 25px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+.btn:hover { background: #f0f0f0; }
+</style>
+
+<div class="container">
+    <div class="hero">
+        <h1>{{ page.title }}</h1>
+        {% if page.intro %}
+        <p>{{ page.intro }}</p>
+        {% else %}
+        <p>欢迎访问我的博客</p>
+        {% endif %}
+        <a href="/admin/" class="btn">进入管理后台</a>
+    </div>
+    
+    <div class="content-section">
+        <h2 style="text-align: center; margin-bottom: 30px;">最新文章</h2>
+        <div class="posts-grid">
+        {% for post in blog_posts %}
+            <div class="post-card" style="background: white; padding: 20px; margin: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3><a href="{% pageurl post %}" style="color: #333; text-decoration: none;">{{ post.title }}</a></h3>
+                {% if post.date %}
+                <p style="color: #888; font-size: 0.9em;">{{ post.date|date:"Y年m月d日" }}</p>
+                {% endif %}
+                {% if post.intro %}
+                <p style="color: #666;">{{ post.intro|truncatewords:30 }}</p>
+                {% endif %}
+            </div>
+        {% empty %}
+            <p style="text-align: center; color: #888;">暂无文章</p>
+        {% endfor %}
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/blog/" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; border-radius: 25px; text-decoration: none;">查看更多文章</a>
+        </div>
+        
+        <p style="text-align: center; color: #666; margin-top: 40px;">
+            这是基于 Wagtail CMS 构建的博客系统。<br>
+            登录后台管理: <a href="/admin/">/admin/</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
