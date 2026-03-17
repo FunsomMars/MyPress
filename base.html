@@ -1,4 +1,4 @@
-{% load static wagtailcore_tags wagtailuserbar %}
+{% load static wagtailcore_tags wagtailuserbar custom_filters %}
 
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -169,7 +169,7 @@
                     {% if user.is_authenticated %}
                     <a href="{% url 'account_profile' %}">{{ user.username }}</a>
                     <a href="{% url 'create_article' %}">写文章</a>
-                    {% if user.is_superuser %}
+                    {% if user.is_superuser or user|has_group:"Moderators" or user|has_group:"Administrators" %}
                     <a href="/manage/comments/">评论管理</a>
                     {% endif %}
                     <a href="{% url 'account_logout' %}">退出</a>
