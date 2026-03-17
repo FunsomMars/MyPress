@@ -103,7 +103,7 @@ def create_article(request):
     """创建文章"""
     # 检查权限
     if not can_manage_articles(request.user):
-        messages.error(request, '您没有创建文章的权限，请先加入 Editors 或 Moderators 用户组')
+        messages.error(request, '您没有创建文章的权限，请先加入编辑及以上用户组')
         return redirect('/accounts/profile/')
     if request.method == 'POST':
         title = request.POST.get('title')
