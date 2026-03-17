@@ -382,6 +382,9 @@ def approve_application(request, application_id):
     application.reviewed_by = request.user
     application.save()
     
+    # 先清除用户的所有组，确保只能有一个组
+    application.user.groups.clear()
+    
     # 将用户加入对应的用户组
     group = Group.objects.get(name=application.requested_group)
     application.user.groups.add(group)
