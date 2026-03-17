@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
 
 {% block content %}
 <div class="profile-container">
@@ -6,9 +8,11 @@
         <h2>个人中心</h2>
         <p>欢迎, <strong>{{ user.username }}</strong>!</p>
         <p>邮箱: {{ user.email }}</p>
-        <p>身份: 
+        <p>用户组: 
             {% if user.is_superuser %}
             <span style="color: red; font-weight: bold;">超级管理员</span>
+            {% elif user.groups.exists %}
+            {% for g in user.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
             {% else %}
             普通用户
             {% endif %}
@@ -16,36 +20,222 @@
     </div>
     
     <div class="profile-content">
-        <h3>我的用户组</h3>
+        <h3>用户组权限</h3>
         
-        {% if user_groups %}
-        <div class="user-groups">
-            {% for group in user_groups %}
-            <span class="badge" style="display: inline-block; padding: 5px 15px; background: #667eea; color: white; border-radius: 20px; margin-right: 10px;">{{ group.name }}</span>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p>您还没有加入任何用户组。加入用户组后可以享受更多权限！</p>
-        {% endif %}
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+                <tr style="background: #f8f9fa;">
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">用户组</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">权限</th>
+                    <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">申请权限</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">游客</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">浏览文章、查看页面</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">-</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">普通用户</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">游客权限 + 发表评论</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">-</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">编辑</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">普通用户权限 + 创建/编辑自己的文章</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        {% if not user.is_superuser and not user|has_group:"Editors" and not user|has_group:"Moderators" %}
+                        <a href="{% url 'join_group' 'Editors' %}" style="color: #667eea;">点击申请</a>
+                        {% else %}
+                        <span style="color: #888;">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">版主</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">编辑权限 + 删除任意文章、管理评论、权限审批</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        {% if not user.is_superuser and not user|has_group:"Moderators" %}
+                        <a href="{% url 'join_group' 'Moderators' %}" style="color: #667eea;">点击申请</a>
+                        {% else %}
+                        <span style="color: #888;">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">管理员</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">版主权限 + 管理所有文章、权限审批</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        {% if not user.is_superuser and not user.groups.exists %}
+                        <a href="{% url 'join_group' 'Moderators' %}" style="color: #667eea;">点击申请</a>
+                        {% else %}
+                        <span style="color: #888;">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">超级管理员</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">最高权限 + 系统管理</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">-</td>
+                </tr>
+            </tbody>
+        </table>
         
-        <div style="margin-top: 15px;">
-            {% if not user.is_superuser %}
-                {% if not user_groups %}
-                <a href="{% url 'join_group' 'Editors' %}" class="btn btn-sm btn-primary">申请加入 Editors 组</a>
-                <a href="{% url 'join_group' 'Moderators' %}" class="btn btn-sm">申请加入 Moderators 组</a>
-                {% else %}
-                <p style="color: green; font-size: 0.9em;">✓ 您已是用户组成员</p>
+        {# 申请与待办 #}
+        <hr style="margin: 30px 0;">
+        <h3>申请与待办</h3>
+        
+        {# 筛选下拉框 #}
+        <div style="margin-bottom: 15px;">
+            <label for="app-filter">筛选: </label>
+            <select id="app-filter" onchange="filterApplications()" style="padding: 5px 10px; border-radius: 5px; border: 1px solid #ddd;">
+                <option value="all">所有</option>
+                <option value="mine">我的申请</option>
+                {% if user.is_superuser or user|has_group:"Moderators" %}
+                <option value="pending">我的审批</option>
                 {% endif %}
+            </select>
+        </div>
+        
+        <script>
+        function filterApplications() {
+            var filter = document.getElementById('app-filter').value;
+            var mineSection = document.getElementById('my-applications-section');
+            var pendingSection = document.getElementById('pending-applications-section');
+            
+            if (filter === 'all') {
+                if (mineSection) mineSection.style.display = 'block';
+                if (pendingSection) pendingSection.style.display = 'block';
+            } else if (filter === 'mine') {
+                if (mineSection) mineSection.style.display = 'block';
+                if (pendingSection) pendingSection.style.display = 'none';
+            } else if (filter === 'pending') {
+                if (mineSection) mineSection.style.display = 'none';
+                if (pendingSection) pendingSection.style.display = 'block';
+            }
+        }
+        
+        // 3秒后自动隐藏消息
+        setTimeout(function() {
+            var messages = document.querySelectorAll('.messages .alert');
+            messages.forEach(function(msg) {
+                msg.style.transition = 'opacity 0.5s';
+                msg.style.opacity = '0';
+                setTimeout(function() { msg.remove(); }, 500);
+            });
+        }, 3000);
+        </script>
+        
+        {# 我的申请 #}
+        <div id="my-applications-section">
+            <h4 style="margin-bottom: 10px;">我的申请</h4>
+            {% if my_applications %}
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+                <thead>
+                    <tr style="background: #f8f9fa;">
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">申请用户组</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">状态</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">申请时间</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in my_applications %}
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{{ app.requested_group }}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">
+                            {% if app.status == 'pending' %}
+                            <span style="color: orange;">待审批</span>
+                            {% elif app.status == 'approved' %}
+                            <span style="color: green;">已批准</span>
+                            {% else %}
+                            <span style="color: red;">已拒绝</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{{ app.created_at|date:"Y-m-d H:i" }}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">
+                            {% if app.status == 'pending' %}
+                            <a href="{% url 'cancel_application' app.id %}" onclick="return confirm('确定要取消申请吗？')" style="color: red;">取消</a>
+                            {% elif app.status == 'rejected' %}
+                            <a href="{% url 'join_group' app.requested_group %}">重新申请</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
             {% else %}
-            <p style="color: red; font-size: 0.9em;">* 超级管理员无需加入用户组</p>
+            <p style="color: #888;">您还没有提交过申请。</p>
             {% endif %}
         </div>
+        
+        {# 我的审批（仅管理员和超级管理员可见）#}
+        {% if user.is_superuser or user|has_group:"Moderators" %}
+        <div id="pending-applications-section" style="margin-top: 20px;">
+            <h4 style="margin-bottom: 10px;">我的审批</h4>
+            
+            {% if pending_applications %}
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+                <thead>
+                    <tr style="background: #f8f9fa;">
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">用户</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">邮箱</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">申请用户组</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">状态</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">申请时间</th>
+                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in pending_applications %}
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{{ app.user.username }}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{{ app.user.email }}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{{ app.requested_group }}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">
+                            {% if app.status == 'pending' %}
+                            <span style="color: orange;">待审批</span>
+                            {% elif app.status == 'approved' %}
+                            <span style="color: green;">已批准</span>
+                            {% else %}
+                            <span style="color: red;">已拒绝</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{{ app.created_at|date:"Y-m-d H:i" }}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">
+                            {% if app.status == 'pending' %}
+                            <form method="post" action="{% url 'approve_application' app.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="approve">
+                                <input type="text" name="note" placeholder="备注（可选）" style="width: 100px;">
+                                <button type="submit" class="btn btn-sm" style="background: green; color: white;">批准</button>
+                            </form>
+                            <form method="post" action="{% url 'approve_application' app.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="reject">
+                                <input type="text" name="note" placeholder="拒绝原因" style="width: 100px;">
+                                <button type="submit" class="btn btn-sm" style="background: red; color: white;" onclick="return confirm('确定要拒绝吗？')">拒绝</button>
+                            </form>
+                            {% else %}
+                            <span style="color: #888;">已处理</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="color: #888;">暂无待审批的申请。</p>
+            {% endif %}
+        </div>
+        {% endif %}
         
         <hr style="margin: 30px 0;">
         
         <h3>我的文章</h3>
         
-        {% if user_articles %}
+        {% if can_manage %}
         <div class="article-list">
             {% for article in user_articles %}
             <div class="article-item" style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
@@ -57,13 +247,16 @@
             </div>
             {% endfor %}
         </div>
-        {% else %}
-        <p>您还没有创建任何文章。</p>
-        {% endif %}
         
         <div class="profile-actions" style="margin-top: 20px;">
             <a href="{% url 'create_article' %}" class="btn btn-primary">创建新文章</a>
         </div>
+        {% else %}
+        <p>您还没有创建任何文章。</p>
+        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 5px;">
+            <p>您没有创建文章的权限。请申请加入编辑或版主用户组。</p>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
