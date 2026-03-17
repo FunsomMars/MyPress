@@ -298,22 +298,21 @@ def user_profile(request):
     # 获取用户的申请
     my_applications = GroupApplication.objects.filter(user=request.user).order_by('-created_at')
     
-    # 获取待审批的申请（仅管理员和超级管理员可见）
+    # 获取待审批的申请（仅超级管理员可见）
     all_applications = []
     if request.user.is_superuser:
         # 超级管理员可以看到所有申请
         all_applications = GroupApplication.objects.all().order_by('-created_at')[:30]
-    elif request.user.groups.filter(name='Moderators').exists():
-        # 版主可以看到Editors组的所有申请
-        all_applications = GroupApplication.objects.filter(
-            requested_group='Editors'
-        ).order_by('-created_at')[:30]
+    
+    # 检查用户是否有管理文章权限
+    can_manage = can_manage_articles(request.user)
     
     return render(request, 'home/profile.html', {
         'user_articles': user_articles,
         'user_groups': user_groups,
         'my_applications': my_applications,
-        'all_applications': all_applications
+        'all_applications': all_applications,
+        'can_manage': can_manage
     })
 
 
@@ -371,21 +370,12 @@ def join_group(request, group_name):
 @require_http_methods(["POST"])
 def approve_application(request, application_id):
     """审批用户组申请"""
-    # 检查权限：只有超级管理员或Moderators组成员可以审批
-    if not request.user.is_superuser and not request.user.groups.filter(name='Moderators').exists():
-        messages.error(request, '您没有审批权限')
+    # 检查权限：只有超级管理员可以审批
+    if not request.user.is_superuser:
+        messages.error(request, '只有超级管理员可以审批申请')
         return redirect('/accounts/profile/')
     
     application = get_object_or_404(GroupApplication, id=application_id, status='pending')
-    
-    # 权限检查：
-    # 超级管理员可以审批所有
-    # Moderators只能审批Editors组的申请
-    if not request.user.is_superuser:
-        if request.user.groups.filter(name='Moderators').exists():
-            if application.requested_group != 'Editors':
-                messages.error(request, '您只能审批编辑组的申请')
-                return redirect('/accounts/profile/')
     
     # 审批通过
     application.status = 'approved'
@@ -406,19 +396,12 @@ def approve_application(request, application_id):
 @require_http_methods(["POST"])
 def reject_application(request, application_id):
     """拒绝用户组申请"""
-    # 检查权限：只有超级管理员或Moderators组成员可以审批
-    if not request.user.is_superuser and not request.user.groups.filter(name='Moderators').exists():
-        messages.error(request, '您没有审批权限')
+    # 检查权限：只有超级管理员可以审批
+    if not request.user.is_superuser:
+        messages.error(request, '只有超级管理员可以审批申请')
         return redirect('/accounts/profile/')
     
     application = get_object_or_404(GroupApplication, id=application_id, status='pending')
-    
-    # 权限检查
-    if not request.user.is_superuser:
-        if request.user.groups.filter(name='Moderators').exists():
-            if application.requested_group != 'Editors':
-                messages.error(request, '您只能审批编辑组的申请')
-                return redirect('/accounts/profile/')
     
     # 拒绝申请
     application.status = 'rejected'
