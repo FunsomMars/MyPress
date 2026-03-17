@@ -67,7 +67,7 @@
                     <td style="padding: 10px; border: 1px solid #ddd;">管理员</td>
                     <td style="padding: 10px; border: 1px solid #ddd;">版主权限 + 管理所有文章、权限审批</td>
                     <td style="padding: 10px; border: 1px solid #ddd;">
-                        {% if not user.is_superuser and not user|has_group:"Moderators" and not user|has_group:"Editors" %}
+                        {% if not user.is_superuser and not user|has_group:"Moderators" %}
                         <a href="{% url 'join_group' 'Moderators' %}" style="color: #667eea;">点击申请</a>
                         {% else %}
                         <span style="color: #888;">-</span>
