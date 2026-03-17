@@ -95,7 +95,7 @@ def user_logout(request):
 
 def can_manage_articles(user):
     """检查用户是否有管理文章的权限"""
-    return user.is_authenticated and (user.is_superuser or user.groups.filter(name__in=['Editors', 'Moderators']).exists())
+    return user.is_authenticated and (user.is_superuser or user.groups.filter(name__in=['Editors', 'Moderators', 'Administrators']).exists())
 
 
 @login_required
