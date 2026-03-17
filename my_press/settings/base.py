@@ -85,6 +85,7 @@ WSGI_APPLICATION = "my_press.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/{{ docs_version }}/ref/settings/#databases
 
+# 数据库配置 - 默认使用 SQLite
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
