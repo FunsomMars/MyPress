@@ -330,12 +330,6 @@ def join_group(request, group_name):
         messages.error(request, '超级管理员无需申请')
         return redirect('/accounts/profile/')
     
-    # 检查是否已经是该组成员
-    if request.user.groups.filter(name=group_name).exists():
-        group_display = '编辑' if group_name == 'Editors' else '版主'
-        messages.info(request, f'您已经是{group_display}组的成员')
-        return redirect('/accounts/profile/')
-    
     # 检查是否已有待审批的申请
     existing_application = GroupApplication.objects.filter(
         user=request.user,
