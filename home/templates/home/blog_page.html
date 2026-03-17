@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static wagtailcore_tags %}
+{% load shortcodes %}
 
 {% block body_class %}template-blogpage{% endblock %}
 
@@ -61,7 +62,7 @@
         
         <div class="article-content">
             {% if page.body %}
-                {{ page.body|safe }}
+                {{ page.body|parse_shortcodes|safe }}
             {% else %}
                 <p>暂无内容</p>
             {% endif %}
