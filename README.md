@@ -168,4 +168,4 @@ MyPress/
 
 ## 许可证
 
-MIT License - 仅供学习交流使用。
+GNU General Public License v3.0 - 仅供学习交流使用。
