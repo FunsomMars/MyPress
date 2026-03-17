@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import Group
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 
-from .models import BlogPage, BlogIndexPage, Comment
+from .models import BlogPage, BlogIndexPage, Comment, GroupApplication
 
 
 def index(request):
@@ -294,31 +295,151 @@ def user_profile(request):
     # 获取用户所属组
     user_groups = request.user.groups.all()
     
+    # 获取用户的申请
+    my_applications = GroupApplication.objects.filter(user=request.user).order_by('-created_at')
+    
+    # 获取待审批的申请（仅管理员和超级管理员可见）
+    pending_applications = []
+    if request.user.is_superuser:
+        # 超级管理员可以看到所有待审批申请
+        pending_applications = GroupApplication.objects.filter(status='pending').order_by('-created_at')
+    elif request.user.groups.filter(name='Moderators').exists():
+        # 版主只能看到Editors组的申请
+        pending_applications = GroupApplication.objects.filter(
+            status='pending', 
+            requested_group='Editors'
+        ).order_by('-created_at')
+    
     return render(request, 'home/profile.html', {
         'user_articles': user_articles,
-        'user_groups': user_groups
+        'user_groups': user_groups,
+        'my_applications': my_applications,
+        'pending_applications': pending_applications
     })
 
 
 @login_required
 def join_group(request, group_name):
     """用户申请加入用户组"""
-    from django.contrib.auth.models import Group
-    
     # 只有特定组可以申请加入
     allowed_groups = ['Editors', 'Moderators']
     if group_name not in allowed_groups:
         messages.error(request, '无效的用户组')
         return redirect('/accounts/profile/')
     
-    try:
-        group = Group.objects.get(name=group_name)
-        if request.user.groups.filter(name=group_name).exists():
-            messages.info(request, f'您已经是 {group_name} 组的成员')
-        else:
-            request.user.groups.add(group)
-            messages.success(request, f'已成功加入 {group_name} 组！')
-    except Group.DoesNotExist:
-        messages.error(request, '用户组不存在')
+    # 超级管理员不能申请
+    if request.user.is_superuser:
+        messages.error(request, '超级管理员无需申请')
+        return redirect('/accounts/profile/')
+    
+    # 检查是否已经是该组成员
+    if request.user.groups.filter(name=group_name).exists():
+        group_display = '编辑' if group_name == 'Editors' else '版主'
+        messages.info(request, f'您已经是{group_display}组的成员')
+        return redirect('/accounts/profile/')
+    
+    # 检查是否已有待审批的申请
+    existing_application = GroupApplication.objects.filter(
+        user=request.user,
+        requested_group=group_name,
+        status='pending'
+    ).first()
+    
+    if existing_application:
+        messages.info(request, '您已有待审批的申请，请耐心等待')
+        return redirect('/accounts/profile/')
+    
+    # 检查权限：不能向下申请
+    # 版主不能申请编辑
+    if group_name == 'Editors' and request.user.groups.filter(name='Moderators').exists():
+        messages.error(request, '版主不能申请编辑权限')
+        return redirect('/accounts/profile/')
+    
+    # 创建申请记录
+    application = GroupApplication.objects.create(
+        user=request.user,
+        requested_group=group_name,
+        status='pending'
+    )
+    
+    group_display = '编辑' if group_name == 'Editors' else '版主'
+    messages.success(request, f'您的{group_display}权限申请已提交，请等待审批！')
+    
+    return redirect('/accounts/profile/')
+
+
+@login_required
+@require_http_methods(["POST"])
+def approve_application(request, application_id):
+    """审批用户组申请"""
+    # 检查权限：只有超级管理员或Moderators组成员可以审批
+    if not request.user.is_superuser and not request.user.groups.filter(name='Moderators').exists():
+        messages.error(request, '您没有审批权限')
+        return redirect('/accounts/profile/')
+    
+    application = get_object_or_404(GroupApplication, id=application_id, status='pending')
+    
+    # 权限检查：
+    # 超级管理员可以审批所有
+    # Moderators只能审批Editors组的申请
+    if not request.user.is_superuser:
+        if request.user.groups.filter(name='Moderators').exists():
+            if application.requested_group != 'Editors':
+                messages.error(request, '您只能审批编辑组的申请')
+                return redirect('/accounts/profile/')
+    
+    # 审批通过
+    application.status = 'approved'
+    application.reviewed_by = request.user
+    application.save()
+    
+    # 将用户加入对应的用户组
+    group = Group.objects.get(name=application.requested_group)
+    application.user.groups.add(group)
+    
+    group_display = '编辑' if application.requested_group == 'Editors' else '版主'
+    messages.success(request, f'已批准 {application.user.username} 的{group_display}权限申请')
+    
+    return redirect('/accounts/profile/')
+
+
+@login_required
+@require_http_methods(["POST"])
+def reject_application(request, application_id):
+    """拒绝用户组申请"""
+    # 检查权限：只有超级管理员或Moderators组成员可以审批
+    if not request.user.is_superuser and not request.user.groups.filter(name='Moderators').exists():
+        messages.error(request, '您没有审批权限')
+        return redirect('/accounts/profile/')
+    
+    application = get_object_or_404(GroupApplication, id=application_id, status='pending')
+    
+    # 权限检查
+    if not request.user.is_superuser:
+        if request.user.groups.filter(name='Moderators').exists():
+            if application.requested_group != 'Editors':
+                messages.error(request, '您只能审批编辑组的申请')
+                return redirect('/accounts/profile/')
+    
+    # 拒绝申请
+    application.status = 'rejected'
+    application.reviewed_by = request.user
+    application.save()
+    
+    group_display = '编辑' if application.requested_group == 'Editors' else '版主'
+    messages.success(request, f'已拒绝 {application.user.username} 的{group_display}权限申请')
+    
+    return redirect('/accounts/profile/')
+
+
+@login_required
+@require_http_methods(["POST"])
+def cancel_application(request, application_id):
+    """用户取消申请"""
+    application = get_object_or_404(GroupApplication, id=application_id, user=request.user, status='pending')
+    
+    application.delete()
+    
+    messages.success(request, '申请已取消')
     
     return redirect('/accounts/profile/')

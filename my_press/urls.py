@@ -22,8 +22,8 @@ urlpatterns = [
     path('accounts/profile/', home_views.user_profile, name='account_profile'),
     path('accounts/join/<str:group_name>/', home_views.join_group, name='join_group'),
     path('accounts/application/<int:application_id>/approve/', home_views.approve_application, name='approve_application'),
+    path('accounts/application/<int:application_id>/reject/', home_views.reject_application, name='reject_application'),
     path('accounts/application/<int:application_id>/cancel/', home_views.cancel_application, name='cancel_application'),
-    path('accounts/verify/<str:verification_code>/', home_views.verify_email, name='verify_email'),
     
     # 前台文章管理 URLs
     path('article/create/', home_views.create_article, name='create_article'),
