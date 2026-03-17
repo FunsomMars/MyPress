@@ -218,3 +218,5 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'noreply@mspace.top'
 # 密码需要在环境变量或local.py中设置
 EMAIL_HOST_PASSWORD = ''
+CSRF_TRUSTED_ORIGINS = ['https://www.mspace.top', 'http://www.mspace.top:8000']
+ALLOWED_HOSTS = ['*']
