@@ -299,31 +299,21 @@ def user_profile(request):
     my_applications = GroupApplication.objects.filter(user=request.user).order_by('-created_at')
     
     # 获取待审批的申请（仅管理员和超级管理员可见）
-    pending_applications = []
-    processed_applications = []
+    all_applications = []
     if request.user.is_superuser:
-        # 超级管理员可以看到所有待审批申请
-        pending_applications = GroupApplication.objects.filter(status='pending').order_by('-created_at')
-        # 超级管理员可以看到已处理的申请
-        processed_applications = GroupApplication.objects.filter(status__in=['approved', 'rejected']).order_by('-created_at')[:20]
+        # 超级管理员可以看到所有申请
+        all_applications = GroupApplication.objects.all().order_by('-created_at')[:30]
     elif request.user.groups.filter(name='Moderators').exists():
-        # 版主只能看到Editors组的申请
-        pending_applications = GroupApplication.objects.filter(
-            status='pending', 
+        # 版主可以看到Editors组的所有申请
+        all_applications = GroupApplication.objects.filter(
             requested_group='Editors'
-        ).order_by('-created_at')
-        # 版主可以看到已处理的Editors申请
-        processed_applications = GroupApplication.objects.filter(
-            status__in=['approved', 'rejected'],
-            requested_group='Editors'
-        ).order_by('-created_at')[:20]
+        ).order_by('-created_at')[:30]
     
     return render(request, 'home/profile.html', {
         'user_articles': user_articles,
         'user_groups': user_groups,
         'my_applications': my_applications,
-        'pending_applications': pending_applications,
-        'processed_applications': processed_applications
+        'all_applications': all_applications
     })
 
 
