@@ -85,12 +85,49 @@ WSGI_APPLICATION = "my_press.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/{{ docs_version }}/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+import os
+import re
+
+# 支持 DATABASE_URL 环境变量 (格式: postgres://user:pass@host:port/dbname)
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+
+if DATABASE_URL and "postgres" in DATABASE_URL:
+    match = re.match(r'postgres://(?P<user>[^:]+):(?P<password>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)/(?P<name>.+)', DATABASE_URL)
+    if match:
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": match.group("name"),
+                "USER": match.group("user"),
+                "PASSWORD": match.group("password"),
+                "HOST": match.group("host"),
+                "PORT": match.group("port"),
+            }
+        }
+    else:
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
+else:
+    # 支持分开的 DB_* 环境变量
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME", "mypress"),
+            "USER": os.environ.get("DB_USER", "mypress"),
+            "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+            "HOST": os.environ.get("DB_HOST", "localhost"),
+            "PORT": os.environ.get("DB_PORT", "5432"),
+        }
+    } if os.environ.get("DB_HOST") else {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
 
 
 # Password validation
