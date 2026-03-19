@@ -121,17 +121,15 @@
 <script>
 // 年份切换功能
 function switchYear(delta) {
-    const currentYear = {{ filter_year|default:0 }};
+    // 获取当前显示的年份（优先使用筛选年份，否则使用默认年份）
+    let currentYear = {{ filter_year|default:0 }};
+    if (currentYear === 0) {
+        currentYear = {{ default_year|default:0 }};
+    }
+    
     const maxYear = {{ max_year|default:2020 }};
     const minYear = {{ min_year|default:2017 }};
-    let newYear;
-    
-    if (currentYear === 0) {
-        // 如果没有筛选，默认切换到最近一年
-        newYear = maxYear + delta;
-    } else {
-        newYear = currentYear + delta;
-    }
+    const newYear = currentYear + delta;
     
     // 边界检查
     if (newYear > maxYear || newYear < minYear) return;
@@ -164,7 +162,7 @@ function switchYear(delta) {
                     {% else %}
                     <button class="year-arrow" disabled>‹</button>
                     {% endif %}
-                    <span class="current-year">{% if filter_year %}{{ filter_year }}{% else %}全部{% endif %}年</span>
+                    <span class="current-year">{% if filter_year %}{{ filter_year }}{% elif default_year %}{{ default_year }}{% else %}全部{% endif %}年</span>
                     {% if has_next_year %}
                     <button class="year-arrow" onclick="switchYear(1)" title="下一年">›</button>
                     {% else %}
@@ -172,7 +170,7 @@ function switchYear(delta) {
                     {% endif %}
                 </div>
                 
-                {# 月份列表 - 如果有筛选显示筛选年份的月份，否则显示所有年份 #}
+                {# 月份列表 - 如果有筛选显示筛选年份的月份，否则显示默认年份的月份 #}
                 <div class="calendar-months">
                     {% if filter_year %}
                         {# 显示筛选年份的月份 #}
@@ -186,6 +184,20 @@ function switchYear(delta) {
                         {% empty %}
                         <div class="no-posts" style="grid-column: span 3;">
                             {{ filter_year }}年暂无文章
+                        </div>
+                        {% endfor %}
+                    {% elif default_year %}
+                        {# 显示默认年份的月份 #}
+                        {% for month, count in months_with_posts %}
+                        <a href="?year={{ default_year }}&month={{ month }}" class="calendar-month {% if filter_month == month %}active{% endif %}">
+                            <div class="month-name">
+                            {% if month == 1 %}一月{% elif month == 2 %}二月{% elif month == 3 %}三月{% elif month == 4 %}四月{% elif month == 5 %}五月{% elif month == 6 %}六月{% elif month == 7 %}七月{% elif month == 8 %}八月{% elif month == 9 %}九月{% elif month == 10 %}十月{% elif month == 11 %}十一月{% else %}十二月{% endif %}
+                            </div>
+                            <div class="post-count">{{ count }}篇</div>
+                        </a>
+                        {% empty %}
+                        <div class="no-posts" style="grid-column: span 3;">
+                            {{ default_year }}年暂无文章
                         </div>
                         {% endfor %}
                     {% else %}
