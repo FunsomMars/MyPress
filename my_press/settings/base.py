@@ -211,12 +211,11 @@ WAGTAILDOCS_EXTENSIONS = ['csv', 'docx', 'key', 'odt', 'pdf', 'pptx', 'rtf', 'tx
 
 # Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@mspace.top'
+DEFAULT_FROM_EMAIL = 'mrwalker@qq.com'
 EMAIL_HOST = 'smtp.qq.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'noreply@mspace.top'
-# 密码需要在环境变量或local.py中设置
-EMAIL_HOST_PASSWORD = ''
+EMAIL_HOST_USER = 'mrwalker@qq.com'
+EMAIL_HOST_PASSWORD = 'ljpmhaxwdrjrbaag'
 CSRF_TRUSTED_ORIGINS = ['https://www.mspace.top', 'http://www.mspace.top:8000']
 ALLOWED_HOSTS = ['*']

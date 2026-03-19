@@ -47,6 +47,12 @@ def user_login(request):
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
+            # 检查是否验证了邮箱
+            from home.models import EmailVerification
+            if EmailVerification.objects.filter(user=user).exists():
+                messages.error(request, '请先完成邮箱验证后再登录。验证邮件已发送到您的邮箱。')
+                return render(request, 'home/login.html')
+            
             login(request, user)
             messages.success(request, f'欢迎回来, {user.username}!')
             next_url = request.GET.get('next', '/')
@@ -59,6 +65,11 @@ def user_login(request):
 
 def user_register(request):
     """用户注册"""
+    from django.contrib.auth import get_user_model
+    from home.models import EmailVerification
+    from django.core.mail import send_mail
+    from django.conf import settings
+    
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
@@ -74,7 +85,6 @@ def user_register(request):
             messages.error(request, '密码长度至少6位')
             return render(request, 'home/register.html')
         
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         
         if User.objects.filter(username=username).exists():
@@ -85,17 +95,37 @@ def user_register(request):
             messages.error(request, '邮箱已被注册')
             return render(request, 'home/register.html')
         
-        # 创建用户
+        # 创建用户（未激活）
         user = User.objects.create_user(
             username=username,
             email=email,
-            password=password1
+            password=password1,
+            is_active=True  # 保持活跃，但需要邮箱验证
         )
         
-        # 自动登录
-        login(request, user)
-        messages.success(request, '注册成功!')
-        return redirect('/')
+        # 创建验证记录
+        verification = EmailVerification.create_for_user(user)
+        
+        # 发送验证邮件
+        site_url = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else 'www.mspace.top'
+        verification_url = f"https://{site_url}/accounts/verify/{verification.verification_code}/"
+        
+        try:
+            send_mail(
+                subject='【MyPress】邮箱验证',
+                message=f'您好 {username}，\n\n感谢注册 MyPress！\n\n请点击以下链接完成邮箱验证：\n{verification_url}\n\n链接有效期为24小时。\n\n如果这不是您的操作，请忽略此邮件。',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            messages.success(request, '注册成功！请前往邮箱查收验证邮件，完成验证后即可登录。')
+        except Exception as e:
+            messages.warning(request, f'注册成功，但验证邮件发送失败。请联系管理员。')
+            # 开发环境直接显示验证链接
+            if settings.DEBUG:
+                messages.info(request, f'验证链接（开发模式）：{verification_url}')
+        
+        return render(request, 'home/register_success.html', {'email': email})
     
     return render(request, 'home/register.html')
 
@@ -105,6 +135,35 @@ def user_logout(request):
     logout(request)
     messages.info(request, '您已成功登出')
     return redirect('/')
+
+
+def verify_email(request, code):
+    """邮箱验证"""
+    from home.models import EmailVerification
+    
+    verification = EmailVerification.objects.filter(verification_code=code).first()
+    
+    if not verification:
+        messages.error(request, '验证链接无效')
+        return redirect('/')
+    
+    if not verification.is_valid():
+        messages.error(request, '验证链接已过期，请重新注册')
+        # 删除过期验证记录
+        verification.delete()
+        return redirect('/')
+    
+    # 验证成功
+    user = verification.user
+    verification.delete()
+    
+    # 自动登录
+    login(request, user)
+    messages.success(request, f'邮箱验证成功！欢迎回来，{user.username}！')
+    
+    # 跳转到首页或之前的页面
+    next_url = request.GET.get('next', '/')
+    return redirect(next_url)
 
 
 def can_manage_articles(user):

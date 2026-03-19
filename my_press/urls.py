@@ -19,6 +19,7 @@ urlpatterns = [
     path('accounts/login/', home_views.user_login, name='account_login'),
     path('accounts/register/', home_views.user_register, name='account_register'),
     path('accounts/logout/', home_views.user_logout, name='account_logout'),
+    path('accounts/verify/<str:code>/', home_views.verify_email, name='verify_email'),
     path('accounts/profile/', home_views.user_profile, name='account_profile'),
     path('accounts/join/<str:group_name>/', home_views.join_group, name='join_group'),
     path('accounts/application/<int:application_id>/approve/', home_views.approve_application, name='approve_application'),
