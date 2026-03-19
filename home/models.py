@@ -257,14 +257,17 @@ class BlogIndexPage(Page):
         
         context['months_with_posts'] = months_with_posts
         
-        # 如果没有筛选，默认显示最近一年，并允许往更早年份切换
+        # 箭头逻辑：
+        # - has_prev_year: 是否可以切换到更早的年份（当前年份 > 最小年份）
+        # - has_next_year: 是否可以切换到更近的年份（当前年份 < 最大年份）
         if not filter_year and all_years:
             current_year = max(all_years)
-            has_prev_year = False  # 已经是最近一年，不能往前
-            has_next_year = True   # 可以切换到更早的年份
+            # 最近年份：不能往前（has_prev），可以往后（has_next）
+            has_prev_year = current_year > min(all_years)
+            has_next_year = current_year < max(all_years)
         else:
-            has_prev_year = current_year and current_year < max(all_years) if all_years else False
-            has_next_year = current_year and current_year > min(all_years) if all_years else False
+            has_prev_year = current_year and current_year > min(all_years) if all_years else False
+            has_next_year = current_year and current_year < max(all_years) if all_years else False
         
         # 默认显示最近一年
         if not filter_year and all_years:
