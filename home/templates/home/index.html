@@ -75,5 +75,19 @@
         </div>
         {% endfor %}
     </div>
+    {% if show_more %}
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ blog_url }}" class="btn btn-primary" style="
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 500;
+            transition: transform 0.3s;
+        ">查看更多文章 →</a>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

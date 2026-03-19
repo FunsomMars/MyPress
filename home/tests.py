@@ -257,6 +257,92 @@ class CommentTest(TestCase):
             email='commenter@example.com',
             password='commentpass123'
         )
+
+
+class HomePageTest(TestCase):
+    """首页功能测试"""
+    
+    def setUp(self):
+        self.client = Client()
+        from wagtail.models import Page
+        from home.models import BlogIndexPage, BlogPage
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username='testauthor',
+            email='author@example.com',
+            password='testpass123'
+        )
+        
+        # 创建博客专栏页
+        self.blog_index = BlogIndexPage(
+            title='博客',
+            slug='blog',
+        )
+        root_page = Page.objects.get(depth=1)
+        root_page.add_child(instance=self.blog_index)
+    
+    def test_index_shows_max_6_posts(self):
+        """测试首页最多显示6篇文章"""
+        from home.models import BlogPage
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        
+        # 创建10篇文章
+        for i in range(10):
+            post = BlogPage(
+                title=f'测试文章 {i+1}',
+                slug=f'test-post-{i+1}',
+                date='2026-01-01',
+            )
+            self.blog_index.add_child(instance=post)
+            # 发布文章
+            post.save_revision().publish()
+        
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        
+        # 页面中应该只显示6篇文章
+        blog_posts = response.context['blog_posts']
+        self.assertLessEqual(len(blog_posts), 6)
+        
+        # 应该显示"查看更多"按钮
+        self.assertTrue(response.context['show_more'])
+    
+    def test_index_shows_all_posts_when_less_than_6(self):
+        """测试文章少于6篇时显示全部"""
+        from home.models import BlogPage
+        
+        # 创建3篇文章
+        for i in range(3):
+            post = BlogPage(
+                title=f'测试文章 {i+1}',
+                slug=f'test-post-{i+1}',
+                date='2026-01-01',
+            )
+            self.blog_index.add_child(instance=post)
+            post.save_revision().publish()
+        
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        
+        # 应该显示全部3篇文章
+        blog_posts = response.context['blog_posts']
+        self.assertEqual(len(blog_posts), 3)
+        
+        # 不应该显示"查看更多"按钮
+        self.assertFalse(response.context['show_more'])
+    
+    def test_index_no_posts(self):
+        """测试无文章时首页显示"""
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        
+        blog_posts = response.context['blog_posts']
+        self.assertEqual(len(blog_posts), 0)
+        self.assertFalse(response.context['show_more'])
     
     def test_add_comment_requires_login(self):
         """测试添加评论需要登录"""

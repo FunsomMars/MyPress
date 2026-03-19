@@ -20,10 +20,22 @@ def index(request):
         blog_posts = list(blog_index.get_children().specific().live())
         # 按日期倒序排序
         blog_posts.sort(key=lambda x: x.date, reverse=True)
+        # 首页最多显示6篇文章
+        display_posts = blog_posts[:6]
+        # 是否显示"查看更多"按钮
+        show_more = len(blog_posts) > 6
     else:
-        blog_posts = []
+        display_posts = []
+        show_more = False
     
-    return render(request, 'home/index.html', {'blog_posts': blog_posts})
+    # 获取博客专栏链接
+    blog_url = blog_index.url if blog_index else '/blog/'
+    
+    return render(request, 'home/index.html', {
+        'blog_posts': display_posts,
+        'show_more': show_more,
+        'blog_url': blog_url
+    })
 
 
 def user_login(request):
