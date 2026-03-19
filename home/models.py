@@ -244,6 +244,10 @@ class BlogIndexPage(Page):
         # 简化归档列表：当前筛选年份月份 [(month, count), ...]
         current_year = int(filter_year) if filter_year else None
         
+        # 如果没有筛选，使用默认年份
+        if not current_year and all_years:
+            current_year = max(all_years)
+        
         # 生成当前年份的月份列表
         months_with_posts = []
         if current_year and current_year in archive_sorted:
@@ -251,9 +255,7 @@ class BlogIndexPage(Page):
                 count = len(archive_sorted[current_year][month])
                 months_with_posts.append((month, count))
         
-        # 判断是否有上一年/下一年
-        # 判断是否有上一年/下一年
-        all_years = sorted(archive_sorted.keys(), reverse=True)
+        context['months_with_posts'] = months_with_posts
         
         # 如果没有筛选，默认显示最近一年，并允许往更早年份切换
         if not filter_year and all_years:
