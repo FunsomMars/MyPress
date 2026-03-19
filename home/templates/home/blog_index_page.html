@@ -122,8 +122,20 @@
 // 年份切换功能
 function switchYear(delta) {
     const currentYear = {{ filter_year|default:0 }};
-    if (currentYear === 0) return;
-    const newYear = currentYear + delta;
+    const maxYear = {{ max_year|default:2020 }};
+    const minYear = {{ min_year|default:2017 }};
+    let newYear;
+    
+    if (currentYear === 0) {
+        // 如果没有筛选，默认切换到最近一年
+        newYear = maxYear + delta;
+    } else {
+        newYear = currentYear + delta;
+    }
+    
+    // 边界检查
+    if (newYear > maxYear || newYear < minYear) return;
+    
     const url = new URL(window.location.href);
     url.searchParams.set('year', newYear);
     url.searchParams.delete('month');
@@ -145,22 +157,20 @@ function switchYear(delta) {
             <div class="calendar">
                 <h3>📅 文章日历</h3>
                 
-                {# 年份切换导航 - 只有在筛选时才显示 #}
-                {% if filter_year %}
+                {# 年份切换导航 #}
                 <div class="calendar-year-nav">
                     {% if has_prev_year %}
                     <button class="year-arrow" onclick="switchYear(-1)" title="上一年">‹</button>
                     {% else %}
                     <button class="year-arrow" disabled>‹</button>
                     {% endif %}
-                    <span class="current-year">{{ filter_year }}年</span>
+                    <span class="current-year">{% if filter_year %}{{ filter_year }}{% else %}全部{% endif %}年</span>
                     {% if has_next_year %}
                     <button class="year-arrow" onclick="switchYear(1)" title="下一年">›</button>
                     {% else %}
                     <button class="year-arrow" disabled>›</button>
                     {% endif %}
                 </div>
-                {% endif %}
                 
                 {# 月份列表 - 如果有筛选显示筛选年份的月份，否则显示所有年份 #}
                 <div class="calendar-months">

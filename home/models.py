@@ -255,6 +255,14 @@ class BlogIndexPage(Page):
         has_prev_year = current_year and current_year < max(all_years) if all_years else False
         has_next_year = current_year and current_year > min(all_years) if all_years else False
         
+        # 如果没有筛选，默认显示箭头可用（基于最大年份）
+        if not filter_year and all_years:
+            has_prev_year = False  # 已经是最近年，没有更早的年份可以切换
+            has_next_year = True   # 可以切换到更早的年份
+        
+        context['max_year'] = max(all_years) if all_years else None
+        context['min_year'] = min(all_years) if all_years else None
+        
         context['current_year'] = current_year
         context['months_with_posts'] = months_with_posts
         context['has_prev_year'] = has_prev_year
