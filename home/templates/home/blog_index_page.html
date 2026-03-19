@@ -29,7 +29,40 @@
     text-align: center;
 }
 
-.calendar-year { text-align: center; font-size: 1.3em; font-weight: bold; color: #333; margin-bottom: 15px; }
+.calendar-year-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.calendar-year-nav .year-arrow {
+    background: #667eea;
+    color: white;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    text-decoration: none;
+}
+.calendar-year-nav .year-arrow:hover { background: #5568d3; }
+.calendar-year-nav .year-arrow:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+.calendar-year-nav .current-year {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #333;
+    min-width: 80px;
+    text-align: center;
+}
 
 .calendar-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .calendar-month {
@@ -41,12 +74,20 @@
     border: 1px solid #eee;
     text-decoration: none;
     color: #333;
+    display: block;
 }
 .calendar-month:hover { background: #f0f0f0; border-color: #667eea; }
 .calendar-month.active { background: #667eea; color: white; border-color: #667eea; }
 .calendar-month .month-name { font-weight: bold; font-size: 0.95em; }
 .calendar-month .post-count { font-size: 0.75em; color: #888; margin-top: 4px; }
 .calendar-month.active .post-count { color: rgba(255,255,255,0.8); }
+
+.no-posts { 
+    text-align: center; 
+    color: #999; 
+    padding: 20px; 
+    font-size: 0.9em;
+}
 
 .filter-tags { margin-bottom: 20px; }
 .filter-tag { display: inline-block; padding: 5px 15px; background: #667eea; color: white; border-radius: 20px; font-size: 0.9em; margin-right: 10px; }
@@ -77,6 +118,19 @@
 }
 </style>
 
+<script>
+// 年份切换功能
+function switchYear(delta) {
+    const currentYear = {{ current_year }};
+    const newYear = currentYear + delta;
+    const url = new URL(window.location.href);
+    url.searchParams.set('year', newYear);
+    url.searchParams.delete('month');
+    url.searchParams.delete('page');
+    window.location.href = url.toString();
+}
+</script>
+
 <div class="container">
     <div class="page-header">
         <h1>{{ page.title }}</h1>
@@ -90,48 +144,36 @@
             <div class="calendar">
                 <h3>📅 文章日历</h3>
                 
-                {% if filter_year %}
-                <div class="filter-tags">
-                    <span class="filter-tag">
-                        {{ filter_year }}年{% if filter_month %}{{ filter_month }}月{% endif %}
-                        <a href="?" style="margin-left: 8px; opacity: 0.8;">×</a>
-                    </span>
-                </div>
-                {% endif %}
-                
-                <div class="calendar-year">{{ current_year }}年</div>
-                
-                <div class="calendar-months">
-                    {% for year, months in archive_list %}
-                    {% if forloop.first %}
-                        <div class="calendar-year">{{ year }}年</div>
-                        {% for month, count in months %}
-                        <a href="?year={{ year }}&month={{ month }}" class="calendar-month {% if filter_year == year and filter_month == month %}active{% endif %}">
-                            <div class="month-name">
-                            {% if month == 1 %}一月{% elif month == 2 %}二月{% elif month == 3 %}三月{% elif month == 4 %}四月{% elif month == 5 %}五月{% elif month == 6 %}六月{% elif month == 7 %}七月{% elif month == 8 %}八月{% elif month == 9 %}九月{% elif month == 10 %}十月{% elif month == 11 %}十一月{% else %}十二月{% endif %}
-                            </div>
-                            <div class="post-count">{{ count }}篇</div>
-                        </a>
-                        {% endfor %}
+                {# 年份切换导航 #}
+                <div class="calendar-year-nav">
+                    {% if has_prev_year %}
+                    <button class="year-arrow" onclick="switchYear(-1)" title="上一年">‹</button>
+                    {% else %}
+                    <button class="year-arrow" disabled>‹</button>
                     {% endif %}
+                    <span class="current-year">{{ current_year }}年</span>
+                    {% if has_next_year %}
+                    <button class="year-arrow" onclick="switchYear(1)" title="下一年">›</button>
+                    {% else %}
+                    <button class="year-arrow" disabled>›</button>
+                    {% endif %}
+                </div>
+                
+                {# 月份列表 #}
+                <div class="calendar-months">
+                    {% for month, count in months_with_posts %}
+                    <a href="?year={{ current_year }}&month={{ month }}" class="calendar-month {% if filter_month == month %}active{% endif %}">
+                        <div class="month-name">
+                        {% if month == 1 %}一月{% elif month == 2 %}二月{% elif month == 3 %}三月{% elif month == 4 %}四月{% elif month == 5 %}五月{% elif month == 6 %}六月{% elif month == 7 %}七月{% elif month == 8 %}八月{% elif month == 9 %}九月{% elif month == 10 %}十月{% elif month == 11 %}十一月{% else %}十二月{% endif %}
+                        </div>
+                        <div class="post-count">{{ count }}篇</div>
+                    </a>
+                    {% empty %}
+                    <div class="no-posts" style="grid-column: span 3;">
+                        {{ current_year }}年暂无文章
+                    </div>
                     {% endfor %}
                 </div>
-                
-                {% for year, months in archive_list %}
-                    {% if not forloop.first %}
-                    <div class="calendar-year" style="margin-top:20px;">{{ year }}年</div>
-                    <div class="calendar-months">
-                        {% for month, count in months %}
-                        <a href="?year={{ year }}&month={{ month }}" class="calendar-month {% if filter_year == year and filter_month == month %}active{% endif %}">
-                            <div class="month-name">
-                            {% if month == 1 %}一月{% elif month == 2 %}二月{% elif month == 3 %}三月{% elif month == 4 %}四月{% elif month == 5 %}五月{% elif month == 6 %}六月{% elif month == 7 %}七月{% elif month == 8 %}八月{% elif month == 9 %}九月{% elif month == 10 %}十月{% elif month == 11 %}十一月{% else %}十二月{% endif %}
-                            </div>
-                            <div class="post-count">{{ count }}篇</div>
-                        </a>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                {% endfor %}
             </div>
         </aside>
         

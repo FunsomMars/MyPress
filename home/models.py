@@ -146,6 +146,18 @@ class BlogIndexPage(Page):
         
         all_posts.sort(key=sort_key, reverse=True)
         
+        # 获取所有文章的年份，用于确定默认显示的年份
+        all_years = set()
+        for post in all_posts:
+            post_date = self._get_post_date(post)
+            if post_date:
+                all_years.add(post_date.year)
+        
+        # 默认显示最近一年的文章（如果没有筛选）
+        default_year = max(all_years) if all_years else None
+        if not filter_year and default_year:
+            filter_year = str(default_year)
+        
         # 如果有筛选参数，筛选文章
         if filter_year:
             year = int(filter_year)
@@ -230,9 +242,29 @@ class BlogIndexPage(Page):
         
         context['archive'] = dict(sorted(archive_sorted.items(), reverse=True))
         
-        # 生成简化的归档列表 [(year, [(month, count), ...]), ...]
+        # 简化归档列表：当前年份月份 [(month, count), ...]
+        current_year = int(filter_year) if filter_year else (max(archive_sorted.keys()) if archive_sorted else None)
+        
+        # 生成当前年份的月份列表
+        months_with_posts = []
+        if current_year and current_year in archive_sorted:
+            for month in sorted(archive_sorted[current_year].keys(), reverse=True):
+                count = len(archive_sorted[current_year][month])
+                months_with_posts.append((month, count))
+        
+        # 判断是否有上一年/下一年
+        all_years = sorted(archive_sorted.keys(), reverse=True)
+        has_prev_year = current_year and current_year < max(all_years) if all_years else False
+        has_next_year = current_year and current_year > min(all_years) if all_years else False
+        
+        context['current_year'] = current_year
+        context['months_with_posts'] = months_with_posts
+        context['has_prev_year'] = has_prev_year
+        context['has_next_year'] = has_next_year
+        
+        # 保留旧的archive_list以兼容其他可能使用的地方
         archive_list = []
-        for year in sorted(archive_sorted.keys(), reverse=True):
+        for year in all_years:
             months_list = []
             for month in sorted(archive_sorted[year].keys(), reverse=True):
                 count = len(archive_sorted[year][month])
