@@ -121,7 +121,8 @@
 <script>
 // 年份切换功能
 function switchYear(delta) {
-    const currentYear = {{ current_year }};
+    const currentYear = {{ filter_year|default:0 }};
+    if (currentYear === 0) return;
     const newYear = currentYear + delta;
     const url = new URL(window.location.href);
     url.searchParams.set('year', newYear);
@@ -144,35 +145,53 @@ function switchYear(delta) {
             <div class="calendar">
                 <h3>📅 文章日历</h3>
                 
-                {# 年份切换导航 #}
+                {# 年份切换导航 - 只有在筛选时才显示 #}
+                {% if filter_year %}
                 <div class="calendar-year-nav">
                     {% if has_prev_year %}
                     <button class="year-arrow" onclick="switchYear(-1)" title="上一年">‹</button>
                     {% else %}
                     <button class="year-arrow" disabled>‹</button>
                     {% endif %}
-                    <span class="current-year">{{ current_year }}年</span>
+                    <span class="current-year">{{ filter_year }}年</span>
                     {% if has_next_year %}
                     <button class="year-arrow" onclick="switchYear(1)" title="下一年">›</button>
                     {% else %}
                     <button class="year-arrow" disabled>›</button>
                     {% endif %}
                 </div>
+                {% endif %}
                 
-                {# 月份列表 #}
+                {# 月份列表 - 如果有筛选显示筛选年份的月份，否则显示所有年份 #}
                 <div class="calendar-months">
-                    {% for month, count in months_with_posts %}
-                    <a href="?year={{ current_year }}&month={{ month }}" class="calendar-month {% if filter_month == month %}active{% endif %}">
-                        <div class="month-name">
-                        {% if month == 1 %}一月{% elif month == 2 %}二月{% elif month == 3 %}三月{% elif month == 4 %}四月{% elif month == 5 %}五月{% elif month == 6 %}六月{% elif month == 7 %}七月{% elif month == 8 %}八月{% elif month == 9 %}九月{% elif month == 10 %}十月{% elif month == 11 %}十一月{% else %}十二月{% endif %}
+                    {% if filter_year %}
+                        {# 显示筛选年份的月份 #}
+                        {% for month, count in months_with_posts %}
+                        <a href="?year={{ filter_year }}&month={{ month }}" class="calendar-month {% if filter_month == month %}active{% endif %}">
+                            <div class="month-name">
+                            {% if month == 1 %}一月{% elif month == 2 %}二月{% elif month == 3 %}三月{% elif month == 4 %}四月{% elif month == 5 %}五月{% elif month == 6 %}六月{% elif month == 7 %}七月{% elif month == 8 %}八月{% elif month == 9 %}九月{% elif month == 10 %}十月{% elif month == 11 %}十一月{% else %}十二月{% endif %}
+                            </div>
+                            <div class="post-count">{{ count }}篇</div>
+                        </a>
+                        {% empty %}
+                        <div class="no-posts" style="grid-column: span 3;">
+                            {{ filter_year }}年暂无文章
                         </div>
-                        <div class="post-count">{{ count }}篇</div>
-                    </a>
-                    {% empty %}
-                    <div class="no-posts" style="grid-column: span 3;">
-                        {{ current_year }}年暂无文章
-                    </div>
-                    {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        {# 显示所有年份的文章日历 #}
+                        {% for year, months in archive_list %}
+                        <div class="calendar-year" style="margin-top: {% if forloop.first %}0{% else %}20{% endif %}px;">{{ year }}年</div>
+                        {% for month, count in months %}
+                        <a href="?year={{ year }}&month={{ month }}" class="calendar-month">
+                            <div class="month-name">
+                            {% if month == 1 %}1月{% elif month == 2 %}2月{% elif month == 3 %}3月{% elif month == 4 %}4月{% elif month == 5 %}5月{% elif month == 6 %}6月{% elif month == 7 %}7月{% elif month == 8 %}8月{% elif month == 9 %}9月{% elif month == 10 %}10月{% elif month == 11 %}11月{% else %}12月{% endif %}
+                            </div>
+                            <div class="post-count">{{ count }}篇</div>
+                        </a>
+                        {% endfor %}
+                        {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </aside>
