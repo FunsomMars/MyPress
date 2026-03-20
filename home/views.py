@@ -425,22 +425,6 @@ def join_group(request, group_name):
         messages.error(request, '管理员不能申请低级权限')
         return redirect('/accounts/profile/')
     
-    # 检查权限：不能跳级申请
-    # 普通用户只能申请编辑
-    if not request.user.groups.exists() and group_name != 'Editors':
-        messages.error(request, '普通用户只能申请编辑权限')
-        return redirect('/accounts/profile/')
-    
-    # 编辑只能申请版主
-    if request.user.groups.filter(name='Editors').exists() and group_name != 'Moderators':
-        messages.error(request, '编辑只能申请版主权限')
-        return redirect('/accounts/profile/')
-    
-    # 版主只能申请管理员
-    if request.user.groups.filter(name='Moderators').exists() and group_name != 'Administrators':
-        messages.error(request, '版主只能申请管理员权限')
-        return redirect('/accounts/profile/')
-    
     # 创建申请记录
     application = GroupApplication.objects.create(
         user=request.user,
