@@ -109,7 +109,7 @@ def user_register(request):
         verification = EmailVerification.create_for_user(user)
         
         # 发送验证邮件
-        site_url = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else 'www.mspace.top'
+        site_url = 'www.mspace.top'
         verification_url = f"https://{site_url}/accounts/verify/{verification.verification_code}/"
         
         try:
