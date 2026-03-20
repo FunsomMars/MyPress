@@ -26,11 +26,6 @@
             </div>
             
             <div class="form-group">
-                <label for="intro">文章摘要</label>
-                <textarea id="intro" name="intro" rows="3">{{ article.intro }}</textarea>
-            </div>
-            
-            <div class="form-group">
                 <label>文章内容</label>
                 <div class="editor-toggle">
                     <button type="button" class="btn active" id="btnRichText" onclick="switchEditor('richtext')">富文本</button>
@@ -38,7 +33,7 @@
                 </div>
                 
                 <!-- 富文本编辑器容器 -->
-                <div id="quill-editor" style="height: 400px;"></div>
+                <div id="quill-editor" style="height: calc(100vh - 300px); min-height: 500px;"></div>
                 
                 <!-- Markdown编辑器容器 -->
                 <div id="markdown-editor" style="display: none;">
@@ -75,7 +70,7 @@
     color: white;
     border-color: #667eea;
 }
-.markdown-textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; line-height: 1.6; min-height: 300px; }
+.markdown-textarea { width: 100%; min-height: calc(100vh - 400px); padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px; line-height: 1.6; min-height: 300px; }
 .markdown-preview h1, .markdown-preview h2, .markdown-preview h3 { margin-top: 20px; margin-bottom: 10px; }
 .markdown-preview p { margin-bottom: 15px; }
 .markdown-preview code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
@@ -107,9 +102,20 @@
         }
     });
     
+    // 转换WordPress相对URL为绝对URL
+    function convertRelativeUrls(html) {
+        if (!html) return html;
+        var baseUrl = window.location.origin;
+        // 转换相对图片URL
+        html = html.replace(/src="\/(?!\/)/g, 'src="' + baseUrl + '/');
+        // 转换相对链接
+        html = html.replace(/href="\/(?!\/)/g, 'href="' + baseUrl + '/');
+        return html;
+    }
+    
     // 加载已有内容到富文本编辑器
     if (existingBody) {
-        quill.root.innerHTML = existingBody;
+        quill.root.innerHTML = convertRelativeUrls(existingBody);
     }
     
     // 初始化Markdown编辑器 - 保持原始HTML内容以便在模式切换时使用
