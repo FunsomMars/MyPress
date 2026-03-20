@@ -87,12 +87,14 @@ def user_register(request):
         
         User = get_user_model()
         
+        # 检查用户名是否已存在
         if User.objects.filter(username=username).exists():
-            messages.error(request, '用户名已存在')
+            messages.error(request, f'用户名 "{username}" 已存在，请直接登录或使用其他用户名')
             return render(request, 'home/register.html')
         
+        # 检查邮箱是否已存在
         if User.objects.filter(email=email).exists():
-            messages.error(request, '邮箱已被注册')
+            messages.error(request, f'邮箱 "{email}" 已被注册，请直接登录或使用其他邮箱')
             return render(request, 'home/register.html')
         
         # 创建用户（未激活）
