@@ -151,7 +151,7 @@
                 <tbody>
                     {% for app in my_applications %}
                     <tr>
-                        <td style="padding: 10px; border: 1px solid #ddd;">{{ app.requested_group }}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{{ app.requested_group|group_name_cn }}</td>
                         <td style="padding: 10px; border: 1px solid #ddd;">
                             {% if app.status == 'pending' %}
                             <span style="color: orange;">待审批</span>
@@ -200,7 +200,7 @@
                     <tr>
                         <td style="padding: 10px; border: 1px solid #ddd;">{{ app.user.username }}</td>
                         <td style="padding: 10px; border: 1px solid #ddd;">{{ app.user.email }}</td>
-                        <td style="padding: 10px; border: 1px solid #ddd;">{{ app.requested_group }}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{{ app.requested_group|group_name_cn }}</td>
                         <td style="padding: 10px; border: 1px solid #ddd;">
                             {% if app.status == 'pending' %}
                             <span style="color: orange;">待审批</span>
