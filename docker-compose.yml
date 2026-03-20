@@ -19,9 +19,13 @@ services:
       - DEBUG=${DEBUG:-False}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost}
       - SECRET_KEY=${SECRET_KEY}
+      - DJANGO_SETTINGS_MODULE=my_press.settings.production
     volumes:
       - ./data:/app/data
       - static_volume:/app/static
+      - ./home:/app/home
+      - ./my_press:/app/my_press
+      - ./templates:/app/templates
     depends_on:
       db:
         condition: service_healthy
