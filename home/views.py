@@ -161,11 +161,9 @@ def verify_email(request, code):
     
     # 自动登录
     login(request, user)
-    messages.success(request, f'邮箱验证成功！欢迎回来，{user.username}！')
     
-    # 跳转到首页或之前的页面
-    next_url = request.GET.get('next', '/')
-    return redirect(next_url)
+    # 渲染验证成功页面（带倒计时跳转）
+    return render(request, 'home/verify_success.html', {'user': user})
 
 
 def can_manage_articles(user):
