@@ -202,7 +202,7 @@ def create_article(request):
         # 创建文章
         article = BlogPage(
             title=title,
-            slug=slug
+            slug=slug,
             body=body,
         )
         
@@ -244,7 +244,7 @@ def edit_article(request, slug):
         date = request.POST.get('date')
         
         article.title = title
-                article.body = body
+        article.body = body
         
         if date:
             from datetime import datetime
