@@ -183,7 +183,7 @@
         <div id="pending-applications-section" style="margin-top: 20px;">
             <h4 style="margin-bottom: 10px;">我的审批</h4>
             
-            {% if pending_applications %}
+            {% if all_applications %}
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
                 <thead>
                     <tr style="background: #f8f9fa;">
@@ -196,7 +196,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for app in pending_applications %}
+                    {% for app in all_applications %}
                     <tr>
                         <td style="padding: 10px; border: 1px solid #ddd;">{{ app.user.username }}</td>
                         <td style="padding: 10px; border: 1px solid #ddd;">{{ app.user.email }}</td>
