@@ -522,7 +522,8 @@ def user_management(request):
     
     return render(request, 'home/user_management.html', {
         'users': users,
-        'all_groups': all_groups
+        'all_groups': all_groups,
+        'current_user': request.user
     })
 
 
