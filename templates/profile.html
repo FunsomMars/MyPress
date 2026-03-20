@@ -53,10 +53,10 @@
                     <td style="padding: 10px; border: 1px solid #ddd;">编辑</td>
                     <td style="padding: 10px; border: 1px solid #ddd;">普通用户权限 + 创建/编辑自己的文章</td>
                     <td style="padding: 10px; border: 1px solid #ddd;">
-                        {% if not user.is_superuser and not user|has_group:"Editors" and not user|has_group:"Administrators" %}
-                        <a href="{% url 'join_group' 'Editors' %}" style="color: #667eea;">点击申请</a>
-                        {% else %}
+                        {% if user.is_superuser or user|has_group:"Editors" or user|has_group:"Administrators" %}
                         <span style="color: #888;">-</span>
+                        {% else %}
+                        <a href="{% url 'join_group' 'Editors' %}" style="color: #667eea;">点击申请</a>
                         {% endif %}
                     </td>
                 </tr>
@@ -64,10 +64,10 @@
                     <td style="padding: 10px; border: 1px solid #ddd;">版主</td>
                     <td style="padding: 10px; border: 1px solid #ddd;">编辑权限 + 删除任意文章、管理评论、权限审批</td>
                     <td style="padding: 10px; border: 1px solid #ddd;">
-                        {% if not user.is_superuser and not user|has_group:"Moderators" and not user|has_group:"Administrators" %}
-                        <a href="{% url 'join_group' 'Moderators' %}" style="color: #667eea;">点击申请</a>
-                        {% else %}
+                        {% if user.is_superuser or user|has_group:"Moderators" or user|has_group:"Administrators" %}
                         <span style="color: #888;">-</span>
+                        {% else %}
+                        <a href="{% url 'join_group' 'Moderators' %}" style="color: #667eea;">点击申请</a>
                         {% endif %}
                     </td>
                 </tr>
@@ -75,10 +75,10 @@
                     <td style="padding: 10px; border: 1px solid #ddd;">管理员</td>
                     <td style="padding: 10px; border: 1px solid #ddd;">版主权限 + 管理所有文章、权限审批</td>
                     <td style="padding: 10px; border: 1px solid #ddd;">
-                        {% if not user.is_superuser and not user|has_group:"Administrators" %}
-                        <a href="{% url 'join_group' 'Administrators' %}" style="color: #667eea;">点击申请</a>
-                        {% else %}
+                        {% if user.is_superuser or user|has_group:"Administrators" %}
                         <span style="color: #888;">-</span>
+                        {% else %}
+                        <a href="{% url 'join_group' 'Administrators' %}" style="color: #667eea;">点击申请</a>
                         {% endif %}
                     </td>
                 </tr>
