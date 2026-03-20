@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h2>👥 用户管理</h2>
+        <a href="{% url 'account_profile' %}" class="btn" style="padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px;">← 返回个人中心</a>
+    </div>
+    
+    {% if messages %}
+    <div class="messages" style="margin-bottom: 20px;">
+        {% for message in messages %}
+        <div class="alert" style="padding: 15px; margin-bottom: 10px; border-radius: 5px; {% if message.tags == 'error' %}background: #f8d7da; color: #721c24;{% elif message.tags == 'success' %}background: #d4edda; color: #155724;{% elif message.tags == 'info' %}background: #d1ecf1; color: #0c5460;{% else %}background: #fff3cd; color: #856404;{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="user-table-container" style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <thead>
+                <tr style="background: #343a40; color: white;">
+                    <th style="padding: 15px; text-align: left;">ID</th>
+                    <th style="padding: 15px; text-align: left;">用户名</th>
+                    <th style="padding: 15px; text-align: left;">邮箱</th>
+                    <th style="padding: 15px; text-align: left;">用户组</th>
+                    <th style="padding: 15px; text-align: left;">超级管理员</th>
+                    <th style="padding: 15px; text-align: left;">注册时间</th>
+                    <th style="padding: 15px; text-align: left;">最后登录</th>
+                    <th style="padding: 15px; text-align: left;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr style="border-bottom: 1px solid #dee2e6;">
+                    <td style="padding: 12px;">{{ user.id }}</td>
+                    <td style="padding: 12px;"><strong>{{ user.username }}</strong></td>
+                    <td style="padding: 12px;">{{ user.email }}</td>
+                    <td style="padding: 12px;">
+                        {% if user.groups.exists %}
+                            {% for g in user.groups.all %}
+                            <span style="display: inline-block; padding: 3px 8px; background: #e9ecef; border-radius: 3px; margin-right: 5px; font-size: 12px;">{{ g.name }}</span>
+                            {% endfor %}
+                        {% else %}
+                        <span style="color: #6c757d;">普通用户</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px;">
+                        {% if user.is_superuser %}
+                        <span style="color: red; font-weight: bold;">✓ 是</span>
+                        {% else %}
+                        <span style="color: #6c757d;">否</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px;">{{ user.date_joined|date:"Y-m-d H:i" }}</td>
+                    <td style="padding: 12px;">
+                        {% if user.last_login %}
+                        {{ user.last_login|date:"Y-m-d H:i" }}
+                        {% else %}
+                        <span style="color: #6c757d;">从未登录</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px;">
+                        <button onclick="openEditModal({{ user.id }}, '{{ user.username }}', '{{ user.email }}', '{% for g in user.groups.all %}{{ g.id }}{% if not forloop.last %},{% endif %}{% endfor %}')" 
+                                style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 5px;">
+                            编辑
+                        </button>
+                        {% if not user.is_superuser %}
+                        <button onclick="confirmDelete({{ user.id }}, '{{ user.username }}')" 
+                                style="padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                            删除
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 编辑用户 Modal -->
+<div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 400px; max-width: 90%;">
+        <h3 style="margin-top: 0;">编辑用户</h3>
+        <form id="editUserForm" method="post" action="{% url 'edit_user' 0 %}">
+            {% csrf_token %}
+            <input type="hidden" id="editUserId" name="user_id" value="">
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">用户名</label>
+                <input type="text" id="editUsername" name="username" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">邮箱</label>
+                <input type="email" id="editEmail" name="email" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">新密码（不修改留空）</label>
+                <input type="password" name="new_password" placeholder="留空则不修改密码" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">用户组</label>
+                <select name="group" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                    <option value="">无（普通用户）</option>
+                    {% for group in all_groups %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between;">
+                <button type="button" onclick="closeEditModal()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">取消</button>
+                <button type="submit" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 删除确认 Modal -->
+<div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 350px; max-width: 90%; text-align: center;">
+        <h3 style="margin-top: 0;">确认删除</h3>
+        <p id="deleteMessage" style="margin: 20px 0;"></p>
+        <form id="deleteUserForm" method="post" action="{% url 'delete_user' 0 %}">
+            {% csrf_token %}
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button type="button" onclick="closeDeleteModal()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">取消</button>
+                <button type="submit" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">确认删除</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(userId, username, email, groupIds) {
+    document.getElementById('editUserId').value = userId;
+    document.getElementById('editUsername').value = username;
+    document.getElementById('editEmail').value = email;
+    
+    // 设置用户组
+    var groupSelect = document.querySelector('#editUserForm select[name="group"]');
+    groupSelect.value = '';
+    
+    document.getElementById('editModal').style.display = 'block';
+    
+    // 更新表单action
+    var form = document.getElementById('editUserForm');
+    form.action = '/accounts/profile/user/' + userId + '/edit/';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+function confirmDelete(userId, username) {
+    document.getElementById('deleteMessage').innerHTML = '确定要删除用户 <strong>' + username + '</strong> 吗？<br><br>此操作不可恢复！';
+    var form = document.getElementById('deleteUserForm');
+    form.action = '/accounts/profile/user/' + userId + '/delete/';
+    document.getElementById('deleteModal').style.display = 'block';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+// 点击Modal外部关闭
+window.onclick = function(event) {
+    if (event.target == document.getElementById('editModal')) {
+        closeEditModal();
+    }
+    if (event.target == document.getElementById('deleteModal')) {
+        closeDeleteModal();
+    }
+}
+
+// 3秒后自动隐藏消息
+setTimeout(function() {
+    var messages = document.querySelectorAll('.messages .alert');
+    messages.forEach(function(msg) {
+        msg.style.transition = 'opacity 0.5s';
+        msg.style.opacity = '0';
+        setTimeout(function() { msg.remove(); }, 500);
+    });
+}, 3000);
+</script>
+{% endblock %}

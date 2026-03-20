@@ -500,3 +500,111 @@ def cancel_application(request, application_id):
     messages.success(request, '申请已取消')
     
     return redirect('/accounts/profile/')
+
+
+# ==================== 用户管理（仅超级管理员） ====================
+
+@login_required
+def user_management(request):
+    """用户管理页面（仅超级管理员）"""
+    if not request.user.is_superuser:
+        messages.error(request, '只有超级管理员可以访问用户管理')
+        return redirect('/accounts/profile/')
+    
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    # 获取所有用户
+    users = User.objects.all().order_by('-date_joined')
+    
+    # 获取所有用户组
+    all_groups = Group.objects.all()
+    
+    return render(request, 'home/user_management.html', {
+        'users': users,
+        'all_groups': all_groups
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def edit_user(request, user_id):
+    """编辑用户信息（仅超级管理员）"""
+    if not request.user.is_superuser:
+        messages.error(request, '只有超级管理员可以编辑用户')
+        return redirect('/accounts/profile/')
+    
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    target_user = get_object_or_404(User, id=user_id)
+    
+    # 不能修改超级管理员（除非是自己）
+    if target_user.is_superuser and target_user != request.user:
+        messages.error(request, '不能修改其他超级管理员的信息')
+        return redirect('/accounts/profile/')
+    
+    # 获取提交的表单数据
+    email = request.POST.get('email', '').strip()
+    username = request.POST.get('username', '').strip()
+    new_password = request.POST.get('new_password', '').strip()
+    group_id = request.POST.get('group', '')
+    
+    # 验证用户名唯一性
+    if username != target_user.username and User.objects.filter(username=username).exists():
+        messages.error(request, f'用户名 "{username}" 已被使用')
+        return redirect('/accounts/profile/users/')
+    
+    # 验证邮箱唯一性
+    if email != target_user.email and User.objects.filter(email=email).exists():
+        messages.error(request, f'邮箱 "{email}" 已被使用')
+        return redirect('/accounts/profile/users/')
+    
+    # 更新用户信息
+    target_user.email = email
+    target_user.username = username
+    
+    if new_password:
+        target_user.set_password(new_password)
+        messages.info(request, '密码已更新')
+    
+    # 更新用户组
+    target_user.groups.clear()
+    if group_id:
+        group = Group.objects.get(id=group_id)
+        target_user.groups.add(group)
+    
+    target_user.save()
+    messages.success(request, f'用户 "{username}" 信息已更新')
+    
+    return redirect('/accounts/profile/users/')
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_user(request, user_id):
+    """删除用户（仅超级管理员）"""
+    if not request.user.is_superuser:
+        messages.error(request, '只有超级管理员可以删除用户')
+        return redirect('/accounts/profile/')
+    
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    target_user = get_object_or_404(User, id=user_id)
+    
+    # 不能删除自己
+    if target_user == request.user:
+        messages.error(request, '不能删除自己的账户')
+        return redirect('/accounts/profile/users/')
+    
+    # 不能删除其他超级管理员
+    if target_user.is_superuser:
+        messages.error(request, '不能删除超级管理员账户')
+        return redirect('/accounts/profile/users/')
+    
+    username = target_user.username
+    target_user.delete()
+    messages.success(request, f'用户 "{username}" 已删除')
+    
+    return redirect('/accounts/profile/users/')
