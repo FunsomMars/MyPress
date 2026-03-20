@@ -103,7 +103,7 @@
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">用户组</label>
                 <select name="group" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
-                    <option value="">无（普通用户）</option>
+                    <option value="">普通用户</option>
                     {% for group in all_groups %}{% if group.name == 'Editors' %}<option value="{{ group.id }}">编辑</option>{% elif group.name == 'Moderators' %}<option value="{{ group.id }}">版主</option>{% elif group.name == 'Administrators' %}<option value="{{ group.id }}">管理员</option>{% else %}<option value="{{ group.id }}">{{ group.name }}</option>{% endif %}{% endfor %}
                 </select>
             </div>
