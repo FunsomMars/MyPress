@@ -35,15 +35,12 @@
                 {% for user in users %}
                 <tr style="border-bottom: 1px solid #dee2e6;">
                     <td style="padding: 12px;">{{ user.id }}</td>
-                    <td style="padding: 12px;">
-                        <strong>{{ user.username }}</strong>
-                        {% if user.is_superuser %}
-                        <span style="color: red; font-size: 12px; margin-left: 5px;">(超级管理员)</span>
-                        {% endif %}
-                    </td>
+                    <td style="padding: 12px;"><strong>{{ user.username }}</strong></td>
                     <td style="padding: 12px;">{{ user.email|default:"-" }}</td>
                     <td style="padding: 12px;">
-                        {% if user.groups.exists %}
+                        {% if user.is_superuser %}
+                        <span style="display: inline-block; padding: 3px 8px; background: #ffc107; border-radius: 3px; margin-right: 5px; font-size: 12px; color: #000;">超级管理员</span>
+                        {% elif user.groups.exists %}
                             {% for g in user.groups.all %}
                             <span style="display: inline-block; padding: 3px 8px; background: #e9ecef; border-radius: 3px; margin-right: 5px; font-size: 12px;">{{ g.name }}</span>
                             {% endfor %}
@@ -60,7 +57,7 @@
                         {% endif %}
                     </td>
                     <td style="padding: 12px;">
-                        <button onclick="openEditModal({{ user.id }}, '{{ user.username }}', '{{ user.email }}', '{% for g in user.groups.all %}{{ g.id }}{% if not forloop.last %},{% endif %}{% endfor %}')" 
+                        <button onclick="openEditModal({{ user.id }}, '{{ user.username }}', '{{ user.email }}', '{% for g in user.groups.all %}{{ g.id }}{% if not forloop.last %},{% endif %}{% endfor %}', {{ current_user.id }})" 
                                 style="padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 5px;">
                             编辑
                         </button>
@@ -139,14 +136,23 @@
 </div>
 
 <script>
-function openEditModal(userId, username, email, groupIds) {
+function openEditModal(userId, username, email, groupIds, currentUserId) {
     document.getElementById('editUserId').value = userId;
     document.getElementById('editUsername').value = username;
     document.getElementById('editEmail').value = email;
     
-    // 设置用户组
+    // 设置用户组 - 编辑自己时禁用用户组选择
     var groupSelect = document.querySelector('#editUserForm select[name="group"]');
     groupSelect.value = '';
+    
+    if (userId === currentUserId) {
+        // 编辑自己的时候禁用用户组选择
+        groupSelect.disabled = true;
+        groupSelect.title = "不能修改自己的用户组";
+    } else {
+        groupSelect.disabled = false;
+        groupSelect.title = "";
+    }
     
     document.getElementById('editModal').style.display = 'block';
     
