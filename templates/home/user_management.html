@@ -41,9 +41,7 @@
                         {% if user.is_superuser %}
                         <span style="display: inline-block; padding: 3px 8px; background: #ffc107; border-radius: 3px; margin-right: 5px; font-size: 12px; color: #000;">超级管理员</span>
                         {% elif user.groups.exists %}
-                            {% for g in user.groups.all %}
-                            <span style="display: inline-block; padding: 3px 8px; background: #e9ecef; border-radius: 3px; margin-right: 5px; font-size: 12px;">{{ g.name }}</span>
-                            {% endfor %}
+                            {% for g in user.groups.all %}{% if g.name == 'Editors' %}<span style="display: inline-block; padding: 3px 8px; background: #e9ecef; border-radius: 3px; margin-right: 5px; font-size: 12px;">编辑</span>{% elif g.name == 'Moderators' %}<span style="display: inline-block; padding: 3px 8px; background: #e9ecef; border-radius: 3px; margin-right: 5px; font-size: 12px;">版主</span>{% elif g.name == 'Administrators' %}<span style="display: inline-block; padding: 3px 8px; background: #e9ecef; border-radius: 3px; margin-right: 5px; font-size: 12px;">管理员</span>{% else %}<span style="display: inline-block; padding: 3px 8px; background: #e9ecef; border-radius: 3px; margin-right: 5px; font-size: 12px;">{{ g.name }}</span>{% endif %}{% endfor %}
                         {% else %}
                         <span style="color: #6c757d;">普通用户</span>
                         {% endif %}
