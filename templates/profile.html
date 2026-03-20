@@ -12,7 +12,7 @@
             {% if user.is_superuser %}
             <span style="color: red; font-weight: bold;">超级管理员</span>
             {% elif user.groups.exists %}
-            {% for g in user.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            {% for g in user.groups.all %}{% if g.name == 'Editors' %}编辑{% elif g.name == 'Moderators' %}版主{% elif g.name == 'Administrators' %}管理员{% else %}{{ g.name }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}
             {% else %}
             普通用户
             {% endif %}
@@ -255,6 +255,18 @@
             </div>
             {% endfor %}
         </div>
+        
+        {% if user_articles.has_other_pages %}
+        <div class="pagination" style="margin-top: 20px; text-align: center;">
+            {% if user_articles.has_previous %}
+            <a href="?page={{ user_articles.previous_page_number }}" class="btn btn-sm">上一页</a>
+            {% endif %}
+            <span style="padding: 0 10px;">第 {{ user_articles.number }} / {{ user_articles.paginator.num_pages }} 页</span>
+            {% if user_articles.has_next %}
+            <a href="?page={{ user_articles.next_page_number }}" class="btn btn-sm">下一页</a>
+            {% endif %}
+        </div>
+        {% endif %}
         
         <div class="profile-actions" style="margin-top: 20px;">
             <a href="{% url 'create_article' %}" class="btn btn-primary">创建新文章</a>

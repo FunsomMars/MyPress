@@ -106,9 +106,7 @@
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">用户组</label>
                 <select name="group" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
                     <option value="">无（普通用户）</option>
-                    {% for group in all_groups %}
-                    <option value="{{ group.id }}">{{ group.name }}</option>
-                    {% endfor %}
+                    {% for group in all_groups %}{% if group.name == 'Editors' %}<option value="{{ group.id }}">编辑</option>{% elif group.name == 'Moderators' %}<option value="{{ group.id }}">版主</option>{% elif group.name == 'Administrators' %}<option value="{{ group.id }}">管理员</option>{% else %}<option value="{{ group.id }}">{{ group.name }}</option>{% endif %}{% endfor %}
                 </select>
             </div>
             
@@ -143,7 +141,14 @@ function openEditModal(userId, username, email, groupIds, currentUserId) {
     
     // 设置用户组 - 编辑自己时禁用用户组选择
     var groupSelect = document.querySelector('#editUserForm select[name="group"]');
-    groupSelect.value = '';
+    
+    // 根据groupIds设置选中的用户组
+    var groupIdArray = groupIds ? groupIds.split(',') : [];
+    if (groupIdArray.length > 0) {
+        groupSelect.value = groupIdArray[0];  // 选中第一个用户组
+    } else {
+        groupSelect.value = '';
+    }
     
     if (userId === currentUserId) {
         // 编辑自己的时候禁用用户组选择

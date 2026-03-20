@@ -358,12 +358,23 @@ def user_profile(request):
     if not request.user.is_authenticated:
         return redirect('/accounts/login/')
     
-    # 获取用户创建的文章
+    # 获取用户创建的文章（分页）
     from wagtail.models import Page
-    user_articles = Page.objects.filter(
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+    
+    articles_query = Page.objects.filter(
         content_type__model='blogpage',
         owner=request.user
     ).specific()
+    
+    paginator = Paginator(articles_query, 10)  # 每页10篇
+    page = request.GET.get('page', 1)
+    try:
+        user_articles = paginator.page(page)
+    except PageNotAnInteger:
+        user_articles = paginator.page(1)
+    except EmptyPage:
+        user_articles = paginator.page(paginator.num_pages)
     
     # 获取用户所属组
     user_groups = request.user.groups.all()
