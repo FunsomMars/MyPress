@@ -204,8 +204,17 @@
         </div>
         {% endif %}
         
+        {% if user.is_superuser %}
         <hr style="margin: 30px 0;">
-        
+        <h3>系统管理</h3>
+        <div style="margin-bottom: 20px;">
+            <a href="{% url 'user_management' %}" class="btn btn-primary">用户管理</a>
+            <a href="{% url 'manage_comments' %}" class="btn btn-primary" style="margin-left: 10px;">评论管理</a>
+        </div>
+        {% endif %}
+
+        <hr style="margin: 30px 0;">
+
         <h3>我的文章</h3>
         
         {% if can_manage %}
