@@ -22,7 +22,7 @@ services:
       - DJANGO_SETTINGS_MODULE=my_press.settings.production
     volumes:
       - ./data:/app/data
-      - static_volume:/app/static
+      - /var/www/static:/app/static
       - ./home:/app/home
       - ./my_press:/app/my_press
       - ./templates:/app/templates
@@ -80,7 +80,6 @@ services:
 volumes:
   db_data:
   redis_data:
-  static_volume:
 
 networks:
   default:
