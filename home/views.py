@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 
-from .models import BlogPage, BlogIndexPage, Comment, GroupApplication
+from .models import BlogPage, BlogIndexPage, Comment, GroupApplication, CustomPage
 
 
 def index(request):
@@ -232,9 +232,9 @@ def edit_article(request, slug):
     """编辑文章"""
     article = get_object_or_404(BlogPage, slug=slug)
     
-    # 检查权限 - 作者或超级用户可以编辑
-    if request.user != article.owner and not request.user.is_superuser:
-        messages.error(request, '您没有权限编辑这篇文章')
+    # 检查权限 - 编辑及以上用户组可以编辑
+    if not can_manage_articles(request.user):
+        messages.error(request, '您没有权限编辑这篇文章，需要编辑及以上用户组权限')
         return redirect(f'/blog/{slug}/')
     
     if request.method == 'POST':
@@ -268,9 +268,9 @@ def delete_article(request, slug):
     """删除文章"""
     article = get_object_or_404(BlogPage, slug=slug)
     
-    # 检查权限 - 作者或超级用户可以删除
-    if request.user != article.owner and not request.user.is_superuser:
-        messages.error(request, '您没有权限删除这篇文章')
+    # 检查权限 - 编辑及以上用户组可以删除
+    if not can_manage_articles(request.user):
+        messages.error(request, '您没有权限删除这篇文章，需要编辑及以上用户组权限')
         return redirect(f'/blog/{slug}/')
     
     if request.method == 'POST':
@@ -616,5 +616,34 @@ def delete_user(request, user_id):
     username = target_user.username
     target_user.delete()
     messages.success(request, f'用户 "{username}" 已删除')
-    
+
     return redirect('/accounts/profile/users/')
+
+
+@login_required
+def edit_custom_page(request, slug):
+    """编辑专栏页面"""
+    page_obj = get_object_or_404(CustomPage, slug=slug)
+
+    # 检查权限 - 编辑及以上用户组可以编辑
+    if not can_manage_articles(request.user):
+        messages.error(request, '您没有权限编辑此页面，需要编辑及以上用户组权限')
+        return redirect(f'/{slug}/')
+
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        intro = request.POST.get('intro', '')
+        body = request.POST.get('body', '')
+
+        page_obj.title = title
+        page_obj.intro = intro
+        page_obj.body = body
+
+        # 保存版本并发布
+        revision = page_obj.save_revision()
+        revision.publish()
+
+        messages.success(request, '页面更新成功!')
+        return redirect(f'/{slug}/')
+
+    return render(request, 'home/edit_custom_page.html', {'page_obj': page_obj})

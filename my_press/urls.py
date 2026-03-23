@@ -34,6 +34,9 @@ urlpatterns = [
     path('article/<slug:slug>/edit/', home_views.edit_article, name='edit_article'),
     path('article/<slug:slug>/delete/', home_views.delete_article, name='delete_article'),
     
+    # 专栏页面编辑
+    path('page/<slug:slug>/edit/', home_views.edit_custom_page, name='edit_custom_page'),
+
     # 评论 URLs
     path('article/<slug:slug>/comment/', home_views.add_comment, name='add_comment'),
     path('manage/comments/', home_views.manage_comments, name='manage_comments'),

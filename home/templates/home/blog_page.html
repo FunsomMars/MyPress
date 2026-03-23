@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static wagtailcore_tags %}
 {% load shortcodes %}
+{% load custom_filters %}
 
 {% block body_class %}template-blogpage{% endblock %}
 
@@ -53,11 +54,13 @@
             </div>
         </div>
         
-        {% if user.is_authenticated and user == page.owner or user.is_superuser %}
+        {% if user.is_authenticated %}
+        {% if user.is_superuser or user|has_group:"Editors" or user|has_group:"Moderators" or user|has_group:"Administrators" %}
         <div class="article-actions">
             <a href="{% url 'edit_article' page.slug %}">编辑文章</a>
             <a href="{% url 'delete_article' page.slug %}" class="delete" onclick="return confirm('确定要删除这篇文章吗?')">删除文章</a>
         </div>
+        {% endif %}
         {% endif %}
         
         <div class="article-content">

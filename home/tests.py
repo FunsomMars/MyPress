@@ -6,7 +6,7 @@ MyPress 博客系统单元测试
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from home.models import BlogPage, BlogIndexPage, GroupApplication, Comment
+from home.models import BlogPage, BlogIndexPage, GroupApplication, Comment, CustomPage
 from django.contrib.auth.models import Group
 
 
@@ -400,3 +400,86 @@ class InitPagesDeduplicationTest(TestCase):
         self.blog_index.add_child(instance=post)
         post.save_revision().publish()
         self.assertEqual(BlogPage.objects.filter(slug=new_slug).count(), 1)
+
+
+class EditPermissionTest(TestCase):
+    """编辑权限测试"""
+
+    def setUp(self):
+        self.client = Client()
+        User = get_user_model()
+
+        # 获取已有的HomePage（由migration创建）
+        from wagtail.models import Page
+        from home.models import HomePage
+        self.home = HomePage.objects.first()
+        if not self.home:
+            root_page = Page.objects.get(depth=1)
+            self.home = HomePage(title='Home', slug='home')
+            root_page.add_child(instance=self.home)
+
+        self.blog_index = BlogIndexPage(title='博客', slug='blog')
+        self.home.add_child(instance=self.blog_index)
+
+        # 创建一篇测试文章
+        self.article = BlogPage(title='测试文章', slug='test-article', date='2026-01-01')
+        self.blog_index.add_child(instance=self.article)
+        self.article.save_revision().publish()
+
+        # 创建一个专栏页面
+        self.custom_page = CustomPage(title='测试专栏', slug='test-column', intro='测试', body='<p>内容</p>')
+        self.home.add_child(instance=self.custom_page)
+        self.custom_page.save_revision().publish()
+
+        # 创建用户组
+        self.editors_group, _ = Group.objects.get_or_create(name='Editors')
+
+        # 普通用户
+        self.normal_user = User.objects.create_user(username='normal', password='testpass123')
+
+        # 编辑用户
+        self.editor_user = User.objects.create_user(username='editor', password='testpass123')
+        self.editor_user.groups.add(self.editors_group)
+
+    def test_normal_user_cannot_edit_article(self):
+        """普通用户不能编辑文章"""
+        self.client.login(username='normal', password='testpass123')
+        response = self.client.get(f'/article/{self.article.slug}/edit/')
+        self.assertEqual(response.status_code, 302)  # redirected
+
+    def test_editor_can_edit_article(self):
+        """编辑用户可以编辑文章"""
+        self.client.login(username='editor', password='testpass123')
+        response = self.client.get(f'/article/{self.article.slug}/edit/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_normal_user_cannot_edit_custom_page(self):
+        """普通用户不能编辑专栏页面"""
+        self.client.login(username='normal', password='testpass123')
+        response = self.client.get(f'/page/{self.custom_page.slug}/edit/')
+        self.assertEqual(response.status_code, 302)  # redirected
+
+    def test_editor_can_edit_custom_page(self):
+        """编辑用户可以编辑专栏页面"""
+        self.client.login(username='editor', password='testpass123')
+        response = self.client.get(f'/page/{self.custom_page.slug}/edit/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_editor_can_save_custom_page(self):
+        """编辑用户可以保存专栏页面修改"""
+        self.client.login(username='editor', password='testpass123')
+        response = self.client.post(f'/page/{self.custom_page.slug}/edit/', {
+            'title': '更新后的专栏',
+            'intro': '新简介',
+            'body': '<p>新内容</p>',
+        })
+        self.assertEqual(response.status_code, 302)  # redirect on success
+        self.custom_page.refresh_from_db()
+        self.assertEqual(self.custom_page.title, '更新后的专栏')
+
+    def test_anonymous_cannot_edit(self):
+        """未登录用户不能编辑"""
+        response = self.client.get(f'/article/{self.article.slug}/edit/')
+        self.assertEqual(response.status_code, 302)  # redirect to login
+        response = self.client.get(f'/page/{self.custom_page.slug}/edit/')
+        self.assertEqual(response.status_code, 302)
