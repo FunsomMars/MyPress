@@ -97,11 +97,13 @@ class Command(BaseCommand):
                 with open(posts_file, 'r', encoding='utf-8') as f:
                     posts_data = json.load(f)
                 
-                existing_slugs = list(BlogPage.objects.values_list('slug', flat=True))
-                
+                existing_slugs = set(BlogPage.objects.values_list('slug', flat=True))
+                existing_titles = set(BlogPage.objects.values_list('title', flat=True))
+
                 for post in posts_data:
                     slug = post.get('slug', '')
-                    if slug and slug not in existing_slugs:
+                    title = post.get('title', 'Untitled')
+                    if slug and slug not in existing_slugs and title not in existing_titles:
                         # 处理日期格式
                         date_value = post.get('date')
                         if date_value:

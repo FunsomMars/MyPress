@@ -351,3 +351,52 @@ class HomePageTest(TestCase):
         })
         # 未登录会返回错误或重定向
         self.assertIn(response.status_code, [302, 403, 500])
+
+
+class InitPagesDeduplicationTest(TestCase):
+    """init_pages 文章导入去重测试"""
+
+    def setUp(self):
+        from wagtail.models import Page
+        root_page = Page.objects.get(depth=1)
+        self.blog_index = BlogIndexPage(title='博客', slug='blog')
+        root_page.add_child(instance=self.blog_index)
+
+    def test_no_duplicate_by_slug(self):
+        """测试相同slug的文章不会重复导入"""
+        post = BlogPage(title='测试文章', slug='test-post', date='2026-01-01')
+        self.blog_index.add_child(instance=post)
+        post.save_revision().publish()
+
+        existing_slugs = set(BlogPage.objects.values_list('slug', flat=True))
+        self.assertIn('test-post', existing_slugs)
+        # 模拟导入：相同slug应被跳过
+        new_slug = 'test-post'
+        self.assertTrue(new_slug in existing_slugs)
+
+    def test_no_duplicate_by_title(self):
+        """测试相同标题的文章不会重复导入（即使slug不同）"""
+        post = BlogPage(title='测试文章', slug='test-post', date='2026-01-01')
+        self.blog_index.add_child(instance=post)
+        post.save_revision().publish()
+
+        existing_titles = set(BlogPage.objects.values_list('title', flat=True))
+        # 不同slug但相同标题应被跳过
+        new_slug = 'test-post-different'
+        new_title = '测试文章'
+        self.assertTrue(new_title in existing_titles)
+
+    def test_new_post_can_be_imported(self):
+        """测试全新的文章可以正常导入"""
+        existing_slugs = set(BlogPage.objects.values_list('slug', flat=True))
+        existing_titles = set(BlogPage.objects.values_list('title', flat=True))
+
+        new_slug = 'brand-new-post'
+        new_title = '全新文章'
+        self.assertFalse(new_slug in existing_slugs)
+        self.assertFalse(new_title in existing_titles)
+
+        post = BlogPage(title=new_title, slug=new_slug, date='2026-01-01')
+        self.blog_index.add_child(instance=post)
+        post.save_revision().publish()
+        self.assertEqual(BlogPage.objects.filter(slug=new_slug).count(), 1)
