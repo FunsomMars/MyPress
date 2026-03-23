@@ -23,6 +23,7 @@ services:
     volumes:
       - ./data:/app/data
       - /var/www/static:/app/static
+      - /var/www/media/uploads:/app/media
       - ./home:/app/home
       - ./my_press:/app/my_press
       - ./templates:/app/templates
