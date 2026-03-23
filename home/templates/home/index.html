@@ -27,7 +27,6 @@
 .post-card h3 a { color: #333; text-decoration: none; }
 .post-card h3 a:hover { color: #667eea; }
 .post-card .post-meta { color: #888; font-size: 0.85em; margin-bottom: 10px; }
-.post-card .post-intro { color: #666; line-height: 1.6; }
 .post-card .read-more { display: inline-block; margin-top: 15px; color: #667eea; text-decoration: none; font-weight: 500; }
 .post-card .read-more:hover { text-decoration: underline; }
 </style>
@@ -67,9 +66,6 @@
                     {{ post.date|date:"Y年m月d日" }}
                     {% endif %}
                 </div>
-                {% if post.intro %}
-                <div class="post-intro">{{ post.intro|truncatechars:100 }}</div>
-                {% endif %}
                 <a href="{% pageurl post %}" class="read-more">阅读全文 →</a>
             </div>
         </div>

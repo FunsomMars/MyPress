@@ -10,7 +10,6 @@
 .container { max-width: 800px; margin: 0 auto; padding: 20px; }
 .page-header { text-align: center; margin: 40px 0; }
 .page-header h1 { font-size: 2em; color: #333; margin-bottom: 15px; }
-.page-intro { color: #666; font-size: 1.1em; margin-bottom: 30px; }
 .page-content { line-height: 1.8; color: #333; }
 .page-content p { margin-bottom: 20px; }
 .page-content img { max-width: 100%; height: auto; border-radius: 4px; margin: 20px 0; }
@@ -29,9 +28,6 @@
 <div class="container">
     <div class="page-header">
         <h1>{{ page.title }}</h1>
-        {% if page.intro %}
-        <p class="page-intro">{{ page.intro }}</p>
-        {% endif %}
     </div>
 
     {% if user.is_authenticated %}

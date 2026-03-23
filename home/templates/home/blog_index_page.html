@@ -99,7 +99,6 @@
 .post-item h2 a { color: #333; text-decoration: none; }
 .post-item h2 a:hover { color: #667eea; }
 .post-meta { color: #888; font-size: 0.9em; margin-bottom: 15px; }
-.post-intro { color: #666; line-height: 1.6; }
 .read-more { display: inline-block; margin-top: 15px; color: #667eea; text-decoration: none; font-weight: bold; }
 
 .pagination { text-align: center; margin: 40px 0; }
@@ -146,9 +145,6 @@ function switchYear(delta) {
     <div class="page-header">
         {# 博客页面标题 #}
         {# <h1>{{ page.title }}</h1> #}
-        {% if page.intro %}
-        <p>{{ page.intro }}</p>
-        {% endif %}
     </div>
     
     <div class="blog-layout">
@@ -233,9 +229,6 @@ function switchYear(delta) {
                             发布于 {{ post.first_published_at|date:"Y年m月d日" }}
                             {% endif %}
                         </div>
-                        {% if post.intro %}
-                        <div class="post-intro">{{ post.intro }}</div>
-                        {% endif %}
                         <a href="{% pageurl post %}" class="read-more">阅读全文 →</a>
                     </div>
                 {% empty %}

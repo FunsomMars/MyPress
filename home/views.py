@@ -180,10 +180,9 @@ def create_article(request):
         return redirect('/accounts/profile/')
     if request.method == 'POST':
         title = request.POST.get('title')
-        intro = request.POST.get('intro')
         body = request.POST.get('body')
         date = request.POST.get('date')
-        
+
         # 获取博客索引页
         blog_index = BlogIndexPage.objects.first()
         if not blog_index:
@@ -239,10 +238,9 @@ def edit_article(request, slug):
     
     if request.method == 'POST':
         title = request.POST.get('title')
-        intro = request.POST.get('intro')
         body = request.POST.get('body')
         date = request.POST.get('date')
-        
+
         article.title = title
         article.body = body
         
@@ -632,11 +630,9 @@ def edit_custom_page(request, slug):
 
     if request.method == 'POST':
         title = request.POST.get('title')
-        intro = request.POST.get('intro', '')
         body = request.POST.get('body', '')
 
         page_obj.title = title
-        page_obj.intro = intro
         page_obj.body = body
 
         # 保存版本并发布

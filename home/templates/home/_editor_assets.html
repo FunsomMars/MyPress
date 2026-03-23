@@ -42,6 +42,43 @@ TinyMCE Editor shared assets - included by create_article, edit_article, edit_cu
 
 <script>
 /**
+ * Detect browser language and return TinyMCE language config
+ */
+function detectEditorLanguage() {
+    var lang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+    // Map browser language to TinyMCE language code and CDN URL
+    var langMap = {
+        'zh-cn': 'zh_CN',
+        'zh': 'zh_CN',
+        'zh-tw': 'zh_TW',
+        'zh-hk': 'zh_TW',
+        'ja': 'ja',
+        'ko': 'ko_KR',
+        'fr': 'fr_FR',
+        'de': 'de',
+        'es': 'es',
+        'pt': 'pt_BR',
+        'ru': 'ru',
+        'ar': 'ar',
+        'it': 'it'
+    };
+    // Try exact match first, then prefix match
+    var tmceLang = langMap[lang];
+    if (!tmceLang) {
+        var prefix = lang.split('-')[0];
+        tmceLang = langMap[prefix];
+    }
+    if (tmceLang) {
+        return {
+            language: tmceLang,
+            language_url: 'https://cdn.jsdelivr.net/npm/tinymce-i18n@24.7.29/langs6/' + tmceLang + '.min.js'
+        };
+    }
+    // Default: English (no language pack needed)
+    return {};
+}
+
+/**
  * Clean WordPress escaped characters from content
  */
 function cleanWordPressContent(html) {
@@ -70,12 +107,11 @@ function cleanWordPressContent(html) {
  * @param {string} initialContent - Initial HTML content (optional)
  */
 function initEditor(selector, initialContent) {
-    tinymce.init({
+    var langConfig = detectEditorLanguage();
+    var editorConfig = {
         selector: selector,
         base_url: 'https://cdn.jsdelivr.net/npm/tinymce@6.8.4',
         suffix: '.min',
-        language: 'zh_CN',
-        language_url: 'https://cdn.jsdelivr.net/npm/tinymce-i18n@24.7.29/langs6/zh_CN.min.js',
         plugins: 'fullscreen image media link code table lists autolink searchreplace visualblocks wordcount preview',
         toolbar: [
             'undo redo | blocks fontsize | bold italic underline strikethrough | forecolor backcolor',
@@ -127,6 +163,12 @@ function initEditor(selector, initialContent) {
                 }
             });
         }
-    });
+    };
+    // Merge language config from browser detection
+    if (langConfig.language) {
+        editorConfig.language = langConfig.language;
+        editorConfig.language_url = langConfig.language_url;
+    }
+    tinymce.init(editorConfig);
 }
 </script>
