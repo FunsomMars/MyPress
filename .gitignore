@@ -68,6 +68,9 @@ htmlcov/
 *.log
 .openclaw/
 
+# Claude Code
+.claude/
+
 # OpenClaw
 AGENTS.md
 HEARTBEAT.md
