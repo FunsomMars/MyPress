@@ -217,27 +217,46 @@
 
         <h3>我的文章</h3>
         
-        {% if can_manage %}
+        {% if user_articles %}
+        <p style="color: #888; margin-bottom: 10px;">共 {{ user_articles.paginator.count }} 篇文章</p>
         <div class="article-list">
             {% for article in user_articles %}
             <div class="article-item" style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-                <h4><a href="/blog/{{ article.slug }}/">{{ article.title }}</a></h4>
+                <div>
+                    <h4 style="margin: 0;"><a href="/blog/{{ article.slug }}/">{{ article.title }}</a></h4>
+                    <span style="color: #888; font-size: 0.85em;">{{ article.first_published_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                {% if can_manage %}
                 <div class="article-actions">
                     <a href="{% url 'edit_article' article.slug %}" class="btn btn-sm">编辑</a>
                     <a href="{% url 'delete_article' article.slug %}" class="btn btn-sm btn-danger">删除</a>
                 </div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
+
+        {# 分页导航 #}
+        {% if user_articles.has_other_pages %}
+        <div style="margin-top: 20px; text-align: center;">
+            {% if user_articles.has_previous %}
+            <a href="?page={{ user_articles.previous_page_number }}" class="btn btn-sm">&laquo; 上一页</a>
+            {% endif %}
+            <span style="margin: 0 10px; color: #666;">第 {{ user_articles.number }} / {{ user_articles.paginator.num_pages }} 页</span>
+            {% if user_articles.has_next %}
+            <a href="?page={{ user_articles.next_page_number }}" class="btn btn-sm">下一页 &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
         {% else %}
         <p>您还没有创建任何文章。</p>
         {% endif %}
-        
+
         {% if can_manage %}
         <div class="profile-actions" style="margin-top: 20px;">
             <a href="{% url 'create_article' %}" class="btn btn-primary">创建新文章</a>
         </div>
-        {% else %}
+        {% elif not can_manage and not user_articles %}
         <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 5px;">
             <p>您没有创建文章的权限。请申请加入编辑及以上用户组。</p>
         </div>

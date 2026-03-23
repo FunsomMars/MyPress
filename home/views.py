@@ -368,8 +368,8 @@ def user_profile(request):
     articles_query = Page.objects.filter(
         content_type__model='blogpage',
         owner=request.user
-    ).specific()
-    
+    ).order_by('-first_published_at').specific()
+
     paginator = Paginator(articles_query, 10)  # 每页10篇
     page = request.GET.get('page', 1)
     try:
