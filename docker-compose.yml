@@ -1,7 +1,5 @@
 # MyPress Docker Compose 配置
-# 用于x86_64架构的一键部署
-
-version: '3.8'
+# 用法: docker compose up -d
 
 services:
   # Web应用
