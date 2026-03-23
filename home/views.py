@@ -53,6 +53,13 @@ def user_login(request):
                 messages.error(request, '请先完成邮箱验证后再登录。验证邮件已发送到您的邮箱。')
                 return render(request, 'home/login.html')
             
+            # 设置会话超时：勾选"记住我"14天，否则8小时
+            remember_me = request.POST.get('remember_me')
+            if remember_me:
+                request.session.set_expiry(14 * 24 * 3600)  # 14天
+            else:
+                request.session.set_expiry(8 * 3600)  # 8小时
+
             login(request, user)
             messages.success(request, f'欢迎回来, {user.username}!')
             next_url = request.GET.get('next', '/')

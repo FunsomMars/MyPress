@@ -219,3 +219,7 @@ EMAIL_HOST_USER = 'mrwalker@qq.com'
 EMAIL_HOST_PASSWORD = 'ljpmhaxwdrjrbaag'
 CSRF_TRUSTED_ORIGINS = ['https://www.mspace.top', 'http://www.mspace.top:8000']
 ALLOWED_HOSTS = ['*']
+
+# Session settings
+SESSION_SAVE_EVERY_REQUEST = True  # 每次请求刷新会话过期时间，实现"无操作超时"
+SESSION_COOKIE_AGE = 8 * 3600  # 默认8小时（未勾选"记住我"时的兜底值）
