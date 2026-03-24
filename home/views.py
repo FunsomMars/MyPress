@@ -87,9 +87,14 @@ def user_register(request):
         if password1 != password2:
             messages.error(request, '两次密码不一致')
             return render(request, 'home/register.html')
-        
-        if len(password1) < 6:
-            messages.error(request, '密码长度至少6位')
+
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        try:
+            validate_password(password1)
+        except DjangoValidationError as e:
+            for msg in e.messages:
+                messages.error(request, msg)
             return render(request, 'home/register.html')
         
         User = get_user_model()
@@ -580,6 +585,14 @@ def edit_user(request, user_id):
     target_user.username = username
     
     if new_password:
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        try:
+            validate_password(new_password, target_user)
+        except DjangoValidationError as e:
+            for msg in e.messages:
+                messages.error(request, msg)
+            return redirect(reverse('edit_user', args=[user_id]))
         target_user.set_password(new_password)
         messages.info(request, '密码已更新')
     

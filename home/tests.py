@@ -487,6 +487,47 @@ class EditPermissionTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
+class PasswordComplexityTest(TestCase):
+    """密码复杂度验证测试"""
+
+    def setUp(self):
+        from home.validators import ComplexityValidator
+        self.validator = ComplexityValidator()
+
+    def test_all_four_categories_pass(self):
+        """包含全部4种字符应通过"""
+        self.validator.validate('Abc123!@')  # no exception
+
+    def test_three_categories_pass(self):
+        """包含3种字符应通过"""
+        self.validator.validate('Abc12345')   # upper + lower + digit
+        self.validator.validate('abc123!@')   # lower + digit + special
+        self.validator.validate('ABC123!@')   # upper + digit + special
+        self.validator.validate('Abcdef!@')   # upper + lower + special
+
+    def test_two_categories_fail(self):
+        """只包含2种字符应失败"""
+        from django.core.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            self.validator.validate('abcdef12')   # lower + digit only
+        with self.assertRaises(ValidationError):
+            self.validator.validate('ABCDEF12')   # upper + digit only
+        with self.assertRaises(ValidationError):
+            self.validator.validate('abcdefgh')   # lower only (1 category)
+
+    def test_register_rejects_weak_password(self):
+        """注册时弱密码应被拒绝"""
+        response = self.client.post(reverse('user_register'), {
+            'username': 'weakuser',
+            'email': 'weak@test.com',
+            'password1': 'abcdef12',  # only lower + digit
+            'password2': 'abcdef12',
+        })
+        self.assertEqual(response.status_code, 200)  # stays on register page
+        User = get_user_model()
+        self.assertFalse(User.objects.filter(username='weakuser').exists())
+
+
 class InitSuperuserTest(TestCase):
     """init_superuser 管理命令测试"""
 
