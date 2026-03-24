@@ -135,9 +135,6 @@ AUTH_PASSWORD_VALIDATORS = [
         "OPTIONS": {"min_length": 6},
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
         "NAME": "home.validators.ComplexityValidator",
     },
 ]
