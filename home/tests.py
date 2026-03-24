@@ -37,7 +37,7 @@ class UserAuthTest(TestCase):
     def test_user_register(self):
         """测试用户注册"""
         User = get_user_model()
-        response = self.client.post(reverse('user_register'), {
+        response = self.client.post(reverse('account_register'), {
             'username': 'newuser',
             'email': 'new@example.com',
             'password1': 'newpass123',
@@ -517,7 +517,7 @@ class PasswordComplexityTest(TestCase):
 
     def test_register_rejects_weak_password(self):
         """注册时弱密码应被拒绝"""
-        response = self.client.post(reverse('user_register'), {
+        response = self.client.post(reverse('account_register'), {
             'username': 'weakuser',
             'email': 'weak@test.com',
             'password1': 'abcdef12',  # only lower + digit
