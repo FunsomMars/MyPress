@@ -3,6 +3,23 @@ import re
 from django.core.exceptions import ValidationError
 
 
+class MinLengthValidator:
+    """密码最小长度验证器（中文提示）。"""
+
+    def __init__(self, min_length=6):
+        self.min_length = min_length
+
+    def validate(self, password, user=None):
+        if len(password) < self.min_length:
+            raise ValidationError(
+                f'密码长度至少{self.min_length}位',
+                code='password_too_short',
+            )
+
+    def get_help_text(self):
+        return f'密码长度至少{self.min_length}位'
+
+
 class ComplexityValidator:
     """
     密码复杂度验证器：至少包含大写字母、小写字母、数字、特殊符号中的3种。
