@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 100px auto; text-align: center;">
+    <h2 style="color: #28a745; margin-bottom: 20px;">✅ 邮箱验证成功！</h2>
+    
+    <p style="font-size: 16px; margin-bottom: 30px;">
+        欢迎回来，<strong>{{ user.username }}</strong>！<br>
+        页面将在 <span id="countdown" style="color: #007bff; font-weight: bold;">5</span> 秒后自动跳转...
+    </p>
+    
+    <a href="/" class="btn btn-primary" style="display: inline-block; padding: 10px 30px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">
+        立即跳转
+    </a>
+</div>
+
+<script>
+    let seconds = 5;
+    const countdownEl = document.getElementById('countdown');
+    
+    const timer = setInterval(function() {
+        seconds--;
+        countdownEl.textContent = seconds;
+        
+        if (seconds <= 0) {
+            clearInterval(timer);
+            window.location.href = '/';
+        }
+    }, 1000);
+</script>
+{% endblock %}
