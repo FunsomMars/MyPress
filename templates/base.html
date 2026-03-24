@@ -188,7 +188,7 @@
         
         <nav class="navbar">
             <div class="navbar-content">
-                <a href="/" class="navbar-brand">MyPress</a>
+                <a href="/" class="navbar-brand">{{ site_name }}</a>
                 <button class="navbar-toggle" onclick="document.querySelector('.navbar-collapse').classList.toggle('active')" aria-label="菜单">&#9776;</button>
                 <div class="navbar-collapse">
                     <div class="navbar-menu">
@@ -218,6 +218,12 @@
         </nav>
 
         {% block content %}{% endblock %}
+
+        {% if footer_text %}
+        <footer class="footer">
+            <p>{{ footer_text }}</p>
+        </footer>
+        {% endif %}
 
         {# Global javascript #}
         <script type="text/javascript" src="{% static 'js/my_press.js' %}"></script>

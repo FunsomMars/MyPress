@@ -22,7 +22,32 @@ git clone https://github.com/FunsomMars/MyPress.git mypress
 cd mypress
 ```
 
-### 3. 一键部署
+### 3. 配置环境变量
+
+```bash
+cp .env.example .env
+vim .env
+```
+
+重点修改以下配置：
+
+```env
+# 站点名称和首页内容
+SITE_NAME=我的博客
+HERO_TITLE=欢迎来到我的博客
+HERO_SUBTITLE=分享技术、生活与创意
+# FOOTER_TEXT=Copyright © 2026
+
+# 超级管理员（首次启动自动创建，已存在则跳过）
+SUPERUSER_USERNAME=admin
+SUPERUSER_PASSWORD=your-secure-password
+SUPERUSER_EMAIL=admin@example.com
+
+# 域名
+ALLOWED_HOSTS=localhost,your-domain.com
+```
+
+### 4. 一键部署
 
 ```bash
 chmod +x scripts/deploy.sh
@@ -30,14 +55,14 @@ chmod +x scripts/deploy.sh
 ```
 
 脚本会自动完成：
-- 生成 `.env` 配置文件（含随机 SECRET_KEY 和数据库密码）
+- 生成随机 SECRET_KEY 和数据库密码（如 `.env` 中未修改）
 - 创建数据目录和静态文件目录
 - 构建 Docker 镜像
 - 启动 Web、PostgreSQL、Redis 三个容器
 - 等待健康检查通过
-- 提示创建超级管理员
+- 自动创建超级管理员（从 `.env` 读取）
 
-### 4. 创建超级管理员
+如需手动创建超级管理员：
 
 ```bash
 docker exec -it mypress_web python manage.py createsuperuser
@@ -138,6 +163,13 @@ print(f'文章总数: {BlogPage.objects.count()}')
 | `DB_NAME` | 是 | mypress | PostgreSQL 数据库名 |
 | `DB_USER` | 是 | mypress | 数据库用户名 |
 | `DB_PASSWORD` | 是 | - | 数据库密码，部署脚本自动生成 |
+| `SITE_NAME` | 否 | MyPress | 站点名称（导航栏 + 浏览器标签） |
+| `HERO_TITLE` | 否 | 欢迎来到我的博客 | 首页大标题 |
+| `HERO_SUBTITLE` | 否 | 分享技术、生活与创意 | 首页副标题 |
+| `FOOTER_TEXT` | 否 | （空） | 页脚文字，留空不显示 |
+| `SUPERUSER_USERNAME` | 否 | （空） | 超级管理员用户名，首次启动自动创建 |
+| `SUPERUSER_PASSWORD` | 否 | （空） | 超级管理员密码 |
+| `SUPERUSER_EMAIL` | 否 | （空） | 超级管理员邮箱 |
 | `DEBUG` | 否 | False | 调试模式，生产环境必须为 False |
 | `MYPRESS_PORT` | 否 | 8000 | Web 服务端口 |
 | `REDIS_URL` | 否 | redis://redis:6379/0 | Redis 连接地址 |

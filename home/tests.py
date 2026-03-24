@@ -3,8 +3,10 @@ MyPress 博客系统单元测试
 
 运行方式: python manage.py test home.tests --settings=my_press.settings.dev
 """
-from django.test import TestCase, Client
+from io import StringIO
+from django.test import TestCase, Client, override_settings
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.urls import reverse
 from home.models import BlogPage, BlogIndexPage, GroupApplication, Comment, CustomPage
 from django.contrib.auth.models import Group
@@ -483,3 +485,89 @@ class EditPermissionTest(TestCase):
         self.assertEqual(response.status_code, 302)  # redirect to login
         response = self.client.get(f'/page/{self.custom_page.slug}/edit/')
         self.assertEqual(response.status_code, 302)
+
+
+class InitSuperuserTest(TestCase):
+    """init_superuser 管理命令测试"""
+
+    @override_settings(
+        MYPRESS_SUPERUSER_USERNAME='testadmin',
+        MYPRESS_SUPERUSER_PASSWORD='adminpass123',
+        MYPRESS_SUPERUSER_EMAIL='admin@test.com',
+    )
+    def test_creates_superuser(self):
+        """配置了用户名密码时应创建超级管理员"""
+        out = StringIO()
+        call_command('init_superuser', stdout=out)
+        User = get_user_model()
+        user = User.objects.get(username='testadmin')
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.is_staff)
+        self.assertEqual(user.email, 'admin@test.com')
+        self.assertIn('已创建超级管理员', out.getvalue())
+
+    @override_settings(
+        MYPRESS_SUPERUSER_USERNAME='testadmin',
+        MYPRESS_SUPERUSER_PASSWORD='adminpass123',
+        MYPRESS_SUPERUSER_EMAIL='admin@test.com',
+    )
+    def test_skips_existing_superuser(self):
+        """超级管理员已存在时应跳过"""
+        User = get_user_model()
+        User.objects.create_superuser('testadmin', 'admin@test.com', 'adminpass123')
+        out = StringIO()
+        call_command('init_superuser', stdout=out)
+        self.assertIn('已存在', out.getvalue())
+        self.assertEqual(User.objects.filter(username='testadmin').count(), 1)
+
+    @override_settings(
+        MYPRESS_SUPERUSER_USERNAME='',
+        MYPRESS_SUPERUSER_PASSWORD='',
+    )
+    def test_skips_when_not_configured(self):
+        """未配置用户名密码时应跳过"""
+        out = StringIO()
+        call_command('init_superuser', stdout=out)
+        self.assertIn('跳过', out.getvalue())
+        User = get_user_model()
+        self.assertEqual(User.objects.filter(is_superuser=True).count(), 0)
+
+
+class SiteConfigContextTest(TestCase):
+    """站点自定义配置上下文测试"""
+
+    def setUp(self):
+        self.client = Client()
+
+    @override_settings(
+        MYPRESS_SITE_NAME='TestBlog',
+        MYPRESS_HERO_TITLE='Welcome',
+        MYPRESS_HERO_SUBTITLE='A test blog',
+        MYPRESS_FOOTER_TEXT='Copyright 2026',
+    )
+    def test_site_config_in_context(self):
+        """站点配置变量应注入到模板上下文"""
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['site_name'], 'TestBlog')
+        self.assertEqual(response.context['hero_title'], 'Welcome')
+        self.assertEqual(response.context['hero_subtitle'], 'A test blog')
+        self.assertEqual(response.context['footer_text'], 'Copyright 2026')
+
+    @override_settings(MYPRESS_SITE_NAME='CustomName')
+    def test_site_name_in_navbar(self):
+        """站点名称应显示在导航栏"""
+        response = self.client.get('/')
+        self.assertContains(response, 'CustomName')
+
+    @override_settings(MYPRESS_FOOTER_TEXT='My Footer')
+    def test_footer_rendered(self):
+        """配置了 footer 时应渲染"""
+        response = self.client.get('/')
+        self.assertContains(response, 'My Footer')
+
+    @override_settings(MYPRESS_FOOTER_TEXT='')
+    def test_no_footer_when_empty(self):
+        """未配置 footer 时不应渲染 footer 标签"""
+        response = self.client.get('/')
+        self.assertNotContains(response, '<footer')

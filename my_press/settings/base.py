@@ -75,6 +75,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "home.context_processors.site_config",
             ],
         },
     },
@@ -189,7 +190,19 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
 
 # Wagtail settings
 
-WAGTAIL_SITE_NAME = "my_press"
+WAGTAIL_SITE_NAME = os.environ.get("SITE_NAME", "MyPress")
+
+# Site customization (used in templates via context processor)
+MYPRESS_SITE_NAME = os.environ.get("SITE_NAME", "MyPress")
+MYPRESS_SITE_SUBTITLE = os.environ.get("SITE_SUBTITLE", "分享技术、生活与创意")
+MYPRESS_HERO_TITLE = os.environ.get("HERO_TITLE", "欢迎来到我的博客")
+MYPRESS_HERO_SUBTITLE = os.environ.get("HERO_SUBTITLE", "分享技术、生活与创意")
+MYPRESS_FOOTER_TEXT = os.environ.get("FOOTER_TEXT", "")
+
+# Superuser auto-creation (for initial deployment)
+MYPRESS_SUPERUSER_USERNAME = os.environ.get("SUPERUSER_USERNAME", "")
+MYPRESS_SUPERUSER_PASSWORD = os.environ.get("SUPERUSER_PASSWORD", "")
+MYPRESS_SUPERUSER_EMAIL = os.environ.get("SUPERUSER_EMAIL", "")
 
 # Search
 # https://docs.wagtail.org/en/stable/topics/search/backends.html

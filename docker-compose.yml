@@ -18,6 +18,16 @@ services:
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost}
       - SECRET_KEY=${SECRET_KEY}
       - DJANGO_SETTINGS_MODULE=my_press.settings.production
+      # 站点自定义
+      - SITE_NAME=${SITE_NAME:-MyPress}
+      - SITE_SUBTITLE=${SITE_SUBTITLE:-}
+      - HERO_TITLE=${HERO_TITLE:-}
+      - HERO_SUBTITLE=${HERO_SUBTITLE:-}
+      - FOOTER_TEXT=${FOOTER_TEXT:-}
+      # 超级管理员自动创建
+      - SUPERUSER_USERNAME=${SUPERUSER_USERNAME:-}
+      - SUPERUSER_PASSWORD=${SUPERUSER_PASSWORD:-}
+      - SUPERUSER_EMAIL=${SUPERUSER_EMAIL:-}
     volumes:
       - ./data:/app/data
       - /var/www/static:/app/static
@@ -34,6 +44,7 @@ services:
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              python manage.py init_pages &&
+             python manage.py init_superuser &&
              python manage.py runserver 0.0.0.0:8000"
 
   # PostgreSQL数据库

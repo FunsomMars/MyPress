@@ -44,18 +44,36 @@
 git clone https://github.com/FunsomMars/MyPress.git
 cd MyPress
 
-# 自动生成配置并启动（会自动生成 SECRET_KEY 和数据库密码）
+# 编辑配置（站点名称、管理员账号等）
+cp .env.example .env
+vim .env
+
+# 一键部署
 chmod +x scripts/deploy.sh
 ./scripts/deploy.sh
 ```
 
+部署前建议修改 `.env` 中的关键配置：
+
+```env
+# 站点自定义
+SITE_NAME=我的博客
+HERO_TITLE=欢迎来到我的博客
+HERO_SUBTITLE=分享技术、生活与创意
+
+# 超级管理员（首次启动自动创建）
+SUPERUSER_USERNAME=admin
+SUPERUSER_PASSWORD=your-secure-password
+SUPERUSER_EMAIL=admin@example.com
+```
+
 部署脚本会自动：
 1. 检查 Docker 环境
-2. 生成 `.env` 配置（含随机密钥和密码）
+2. 生成 SECRET_KEY 和数据库密码（如 `.env` 不存在）
 3. 创建必要目录
 4. 构建镜像并启动服务
 5. 等待健康检查通过
-6. 创建超级管理员账号
+6. 自动创建超级管理员（从 `.env` 读取）
 
 部署完成后访问：
 - 前台：`http://your-server:8000`
@@ -155,19 +173,21 @@ docker exec mypress_web python manage.py init_pages
 ### 环境变量 (.env)
 
 ```env
-# 必需
-SECRET_KEY=your-secret-key          # 自动生成
-ALLOWED_HOSTS=localhost,example.com  # 允许的域名
+# 必需（部署脚本自动生成）
+SECRET_KEY=your-secret-key
+DB_PASSWORD=your-password
+ALLOWED_HOSTS=localhost,example.com
 
-# 数据库
-DB_NAME=mypress
-DB_USER=mypress
-DB_PASSWORD=your-password            # 自动生成
+# 站点自定义
+SITE_NAME=MyPress                      # 导航栏标题 + 浏览器标签
+HERO_TITLE=欢迎来到我的博客              # 首页大标题
+HERO_SUBTITLE=分享技术、生活与创意        # 首页副标题
+FOOTER_TEXT=                            # 页脚文字（留空则不显示）
 
-# 可选
-MYPRESS_PORT=8000                    # 服务端口
-DEBUG=False                          # 调试模式
-TIME_ZONE=Asia/Shanghai              # 时区
+# 超级管理员（首次启动自动创建，已存在则跳过）
+SUPERUSER_USERNAME=admin
+SUPERUSER_PASSWORD=change-this
+SUPERUSER_EMAIL=admin@example.com
 ```
 
 完整配置参见 [.env.example](.env.example)。
