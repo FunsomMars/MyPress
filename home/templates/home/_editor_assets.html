@@ -1,0 +1,174 @@
+{% comment %}
+TinyMCE Editor shared assets - included by create_article, edit_article, edit_custom_page
+{% endcomment %}
+
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.4/tinymce.min.js"></script>
+
+<style>
+/* Fullscreen editor layout */
+.editor-container {
+    max-width: 1400px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+.editor-box {
+    background: white;
+    padding: 25px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+.editor-box h2 {
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 1.3em;
+}
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+.editor-header h2 {
+    margin: 0;
+}
+</style>
+
+<script>
+/**
+ * Detect browser language and return TinyMCE language config
+ */
+function detectEditorLanguage() {
+    var lang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+    // Map browser language to TinyMCE language code and CDN URL
+    var langMap = {
+        'zh-cn': 'zh_CN',
+        'zh': 'zh_CN',
+        'zh-tw': 'zh_TW',
+        'zh-hk': 'zh_TW',
+        'ja': 'ja',
+        'ko': 'ko_KR',
+        'fr': 'fr_FR',
+        'de': 'de',
+        'es': 'es',
+        'pt': 'pt_BR',
+        'ru': 'ru',
+        'ar': 'ar',
+        'it': 'it'
+    };
+    // Try exact match first, then prefix match
+    var tmceLang = langMap[lang];
+    if (!tmceLang) {
+        var prefix = lang.split('-')[0];
+        tmceLang = langMap[prefix];
+    }
+    if (tmceLang) {
+        return {
+            language: tmceLang,
+            language_url: 'https://cdn.jsdelivr.net/npm/tinymce-i18n@24.7.29/langs6/' + tmceLang + '.min.js'
+        };
+    }
+    // Default: English (no language pack needed)
+    return {};
+}
+
+/**
+ * Clean WordPress escaped characters from content
+ */
+function cleanWordPressContent(html) {
+    if (!html) return html;
+    // Unescape WordPress/Wagtail escaped characters
+    html = html.replace(/\\"/g, '"');
+    html = html.replace(/\\'/g, "'");
+    html = html.replace(/\\\\/g, "\\");
+
+    // Convert WordPress shortcodes to HTML
+    // [audio mp3="url"]
+    html = html.replace(/\[audio mp3="([^"]+)"[^\]]*\]/g, function(match, url) {
+        return '<audio controls src="' + url + '" preload="none"></audio>';
+    });
+    // [video src="url"]
+    html = html.replace(/\[video[^\]]*src="([^"]+)"[^\]]*\]/g, function(match, url) {
+        return '<video controls src="' + url + '"></video>';
+    });
+
+    return html;
+}
+
+/**
+ * Initialize TinyMCE editor
+ * @param {string} selector - CSS selector for the textarea
+ * @param {string} initialContent - Initial HTML content (optional)
+ */
+function initEditor(selector, initialContent) {
+    var langConfig = detectEditorLanguage();
+    var editorConfig = {
+        selector: selector,
+        base_url: 'https://cdn.jsdelivr.net/npm/tinymce@6.8.4',
+        suffix: '.min',
+        plugins: 'fullscreen image media link code table lists autolink searchreplace visualblocks wordcount preview',
+        toolbar: [
+            'undo redo | blocks fontsize | bold italic underline strikethrough | forecolor backcolor',
+            'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table | code fullscreen'
+        ],
+        height: 'calc(100vh - 240px)',
+        min_height: 500,
+        menubar: 'file edit view insert format tools table',
+        statusbar: true,
+        resize: true,
+        branding: false,
+        promotion: false,
+        // Important: preserve all HTML elements for WordPress content
+        valid_elements: '*[*]',
+        extended_valid_elements: 'audio[*],video[*],source[*],img[*],iframe[*]',
+        valid_children: '+body[style],+body[audio],+body[video]',
+        verify_html: false,
+        // Allow all content
+        invalid_elements: '',
+        // Image settings
+        image_advtab: true,
+        image_caption: true,
+        automatic_uploads: false,
+        // Paste settings - preserve formatting from WordPress
+        paste_data_images: true,
+        paste_as_text: false,
+        // Content styling
+        content_style: `
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                font-size: 16px;
+                line-height: 1.8;
+                color: #333;
+                padding: 10px 20px;
+            }
+            img { max-width: 100%; height: auto; border-radius: 4px; }
+            audio, video { max-width: 100%; margin: 10px 0; }
+            pre { background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; }
+            code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; }
+            blockquote { border-left: 4px solid #667eea; margin: 10px 0; padding: 10px 20px; background: #f9f9f9; }
+            table { border-collapse: collapse; width: 100%; }
+            table td, table th { border: 1px solid #ddd; padding: 8px; }
+        `,
+        setup: function(editor) {
+            editor.on('init', function() {
+                if (initialContent) {
+                    var cleaned = cleanWordPressContent(initialContent);
+                    editor.setContent(cleaned);
+                }
+            });
+        }
+    };
+    // Merge language config from browser detection
+    if (langConfig.language) {
+        editorConfig.language = langConfig.language;
+        editorConfig.language_url = langConfig.language_url;
+    }
+    tinymce.init(editorConfig);
+}
+</script>

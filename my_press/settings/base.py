@@ -52,7 +52,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.locale.LocaleMiddleware",  # i18n - must be after SessionMiddleware
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -76,7 +75,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "django.template.context_processors.i18n",  # i18n context processor
+                "home.context_processors.site_config",
             ],
         },
     },
@@ -88,13 +87,13 @@ WSGI_APPLICATION = "my_press.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/{{ docs_version }}/ref/settings/#databases
 
-# Database configuration - selects database based on environment variable
+# 数据库配置 - 根据环境变量选择数据库
 import os
 import re
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
-# Parse DATABASE_URL format: postgres://user:pass@host:port/dbname
+# 解析 DATABASE_URL 格式: postgres://user:pass@host:port/dbname
 if DATABASE_URL and "postgres" in DATABASE_URL:
     match = re.match(r'postgres://(?P<user>[^:]+):(?P<password>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)/(?P<name>.+)', DATABASE_URL)
     if match:
@@ -132,13 +131,11 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME": "home.validators.MinLengthValidator",
+        "OPTIONS": {"min_length": 6},
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME": "home.validators.ComplexityValidator",
     },
 ]
 
@@ -146,31 +143,13 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/{{ docs_version }}/topics/i18n/
 
-# Supported languages
-from django.utils.translation import gettext_lazy as _
+LANGUAGE_CODE = "en-us"
 
-LANGUAGES = [
-    ('en', _('English')),
-    ('zh-hans', _('Simplified Chinese')),
-]
+TIME_ZONE = "UTC"
 
-# Language code for this site
-LANGUAGE_CODE = 'en'  # Default language
+USE_I18N = True
 
-# Time zone
-TIME_ZONE = 'Asia/Shanghai'  # Change to your server's timezone
-
-USE_I18N = True  # Enable Django's translation system
-
-USE_L10N = True  # Enable localized formatting
-
-USE_TZ = True  # Enable timezone-aware datetimes
-
-
-# Translation directories
-LOCALE_PATHS = [
-    PROJECT_DIR / 'locale',
-]
+USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -204,12 +183,24 @@ STORAGES = {
 
 # Django sets a maximum of 1000 fields per form by default, but particularly complex page models
 # can exceed this limit within Wagtail's page editor.
-DATA_UPLOAD_MAX_NUMBER_OF_FIELDS = 10_000
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
 
 
 # Wagtail settings
 
-WAGTAIL_SITE_NAME = "my_press"
+WAGTAIL_SITE_NAME = os.environ.get("SITE_NAME", "MyPress")
+
+# Site customization (used in templates via context processor)
+MYPRESS_SITE_NAME = os.environ.get("SITE_NAME", "MyPress")
+MYPRESS_SITE_SUBTITLE = os.environ.get("SITE_SUBTITLE", "分享技术、生活与创意")
+MYPRESS_HERO_TITLE = os.environ.get("HERO_TITLE", "欢迎来到我的博客")
+MYPRESS_HERO_SUBTITLE = os.environ.get("HERO_SUBTITLE", "分享技术、生活与创意")
+MYPRESS_FOOTER_TEXT = os.environ.get("FOOTER_TEXT", "")
+
+# Superuser auto-creation (for initial deployment)
+MYPRESS_SUPERUSER_USERNAME = os.environ.get("SUPERUSER_USERNAME", "")
+MYPRESS_SUPERUSER_PASSWORD = os.environ.get("SUPERUSER_PASSWORD", "")
+MYPRESS_SUPERUSER_EMAIL = os.environ.get("SUPERUSER_EMAIL", "")
 
 # Search
 # https://docs.wagtail.org/en/stable/topics/search/backends.html
@@ -239,3 +230,7 @@ EMAIL_HOST_USER = 'mrwalker@qq.com'
 EMAIL_HOST_PASSWORD = 'ljpmhaxwdrjrbaag'
 CSRF_TRUSTED_ORIGINS = ['https://www.mspace.top', 'http://www.mspace.top:8000']
 ALLOWED_HOSTS = ['*']
+
+# Session settings
+SESSION_SAVE_EVERY_REQUEST = True  # 每次请求刷新会话过期时间，实现"无操作超时"
+SESSION_COOKIE_AGE = 8 * 3600  # 默认8小时（未勾选"记住我"时的兜底值）

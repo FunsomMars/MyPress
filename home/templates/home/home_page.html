@@ -17,11 +17,7 @@
 <div class="container">
     <div class="hero">
         <h1>{{ page.title }}</h1>
-        {% if page.intro %}
-        <p>{{ page.intro }}</p>
-        {% else %}
-        <p>欢迎访问我的博客</p>
-        {% endif %}
+        <p>{{ hero_subtitle }}</p>
         <a href="/admin/" class="btn">进入管理后台</a>
     </div>
     
@@ -33,9 +29,6 @@
                 <h3><a href="{% pageurl post %}" style="color: #333; text-decoration: none;">{{ post.title }}</a></h3>
                 {% if post.date %}
                 <p style="color: #888; font-size: 0.9em;">{{ post.date|date:"Y年m月d日" }}</p>
-                {% endif %}
-                {% if post.intro %}
-                <p style="color: #666;">{{ post.intro|truncatewords:30 }}</p>
                 {% endif %}
             </div>
         {% empty %}

@@ -1,43 +1,57 @@
 #!/bin/bash
 
-# MyPress Database Backup Script
-# Backup frequency: weekly
-# Keep last 3 backups
-# Note: Using SQLite (db.sqlite3 in container)
+# MyPress 数据库备份脚本
+# 用法: ./scripts/backup_db.sh
+# 建议通过 crontab 定时执行:
+#   0 3 * * * /opt/mypress/scripts/backup_db.sh >> /var/log/mypress_backup.log 2>&1
 
-# Configuration
-BACKUP_DIR="/opt/mypress/backups"
-DB_PATH="/app/db.sqlite3"
-MAX_BACKUPS=3
-DATE_FORMAT="%Y%m%d_%H%M%S"
+set -e
 
-# Create backup directory if not exists
+# 配置
+BACKUP_DIR="${BACKUP_DIR:-/opt/mypress/backups}"
+DB_CONTAINER="${DB_CONTAINER:-mypress_db}"
+DB_NAME="${DB_NAME:-mypress}"
+DB_USER="${DB_USER:-mypress}"
+MAX_BACKUPS=${MAX_BACKUPS:-7}
+
+# 创建备份目录
 mkdir -p "$BACKUP_DIR"
 
-# Generate backup filename
-BACKUP_FILE="$BACKUP_DIR/sqlite_backup_$(date +$DATE_FORMAT).db.gz"
+# 生成备份文件名
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+BACKUP_FILE="$BACKUP_DIR/pg_backup_${TIMESTAMP}.sql.gz"
 
-echo "[$(date)] Starting database backup..."
+echo "[$(date)] 开始备份 PostgreSQL 数据库..."
 
-# Copy and compress database from container
-docker cp mypress_web:$DB_PATH - | gzip > "$BACKUP_FILE"
-
-if [ $? -eq 0 ]; then
-    echo "[$(date)] Backup completed: $BACKUP_FILE"
-    BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
-    echo "[$(date)] Backup size: $BACKUP_SIZE"
-else
-    echo "[$(date)] Backup failed!"
+# 检查容器是否运行
+if ! docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
+    echo "[$(date)] 错误: 数据库容器 ${DB_CONTAINER} 未运行"
     exit 1
 fi
 
-# Remove old backups (keep only MAX_BACKUPS)
-echo "[$(date)] Cleaning up old backups (keeping last $MAX_BACKUPS)..."
+# 执行备份
+docker exec "$DB_CONTAINER" pg_dump -U "$DB_USER" "$DB_NAME" | gzip > "$BACKUP_FILE"
+
+if [ $? -eq 0 ] && [ -s "$BACKUP_FILE" ]; then
+    BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+    echo "[$(date)] 备份成功: $BACKUP_FILE ($BACKUP_SIZE)"
+else
+    echo "[$(date)] 备份失败!"
+    rm -f "$BACKUP_FILE"
+    exit 1
+fi
+
+# 清理旧备份
+echo "[$(date)] 清理旧备份（保留最近 $MAX_BACKUPS 份）..."
 cd "$BACKUP_DIR"
-ls -t sqlite_backup_*.db.gz | tail -n +$((MAX_BACKUPS + 1)) | xargs -r rm
+REMOVED=$(ls -t pg_backup_*.sql.gz 2>/dev/null | tail -n +$((MAX_BACKUPS + 1)))
+if [ -n "$REMOVED" ]; then
+    echo "$REMOVED" | xargs rm -f
+    echo "[$(date)] 已删除: $(echo "$REMOVED" | wc -l) 份旧备份"
+fi
 
-# List remaining backups
-echo "[$(date)] Remaining backups:"
-ls -lh sqlite_backup_*.db.gz
+# 列出当前备份
+echo "[$(date)] 当前备份列表:"
+ls -lh pg_backup_*.sql.gz 2>/dev/null
 
-echo "[$(date)] Backup process completed!"
+echo "[$(date)] 备份完成!"

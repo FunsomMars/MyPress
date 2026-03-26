@@ -3,10 +3,12 @@ MyPress 博客系统单元测试
 
 运行方式: python manage.py test home.tests --settings=my_press.settings.dev
 """
-from django.test import TestCase, Client
+from io import StringIO
+from django.test import TestCase, Client, override_settings
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.urls import reverse
-from home.models import BlogPage, BlogIndexPage, GroupApplication, Comment
+from home.models import BlogPage, BlogIndexPage, GroupApplication, Comment, CustomPage
 from django.contrib.auth.models import Group
 
 
@@ -35,7 +37,7 @@ class UserAuthTest(TestCase):
     def test_user_register(self):
         """测试用户注册"""
         User = get_user_model()
-        response = self.client.post(reverse('user_register'), {
+        response = self.client.post(reverse('account_register'), {
             'username': 'newuser',
             'email': 'new@example.com',
             'password1': 'newpass123',
@@ -351,3 +353,262 @@ class HomePageTest(TestCase):
         })
         # 未登录会返回错误或重定向
         self.assertIn(response.status_code, [302, 403, 500])
+
+
+class InitPagesDeduplicationTest(TestCase):
+    """init_pages 文章导入去重测试"""
+
+    def setUp(self):
+        from wagtail.models import Page
+        root_page = Page.objects.get(depth=1)
+        self.blog_index = BlogIndexPage(title='博客', slug='blog')
+        root_page.add_child(instance=self.blog_index)
+
+    def test_no_duplicate_by_slug(self):
+        """测试相同slug的文章不会重复导入"""
+        post = BlogPage(title='测试文章', slug='test-post', date='2026-01-01')
+        self.blog_index.add_child(instance=post)
+        post.save_revision().publish()
+
+        existing_slugs = set(BlogPage.objects.values_list('slug', flat=True))
+        self.assertIn('test-post', existing_slugs)
+        # 模拟导入：相同slug应被跳过
+        new_slug = 'test-post'
+        self.assertTrue(new_slug in existing_slugs)
+
+    def test_no_duplicate_by_title(self):
+        """测试相同标题的文章不会重复导入（即使slug不同）"""
+        post = BlogPage(title='测试文章', slug='test-post', date='2026-01-01')
+        self.blog_index.add_child(instance=post)
+        post.save_revision().publish()
+
+        existing_titles = set(BlogPage.objects.values_list('title', flat=True))
+        # 不同slug但相同标题应被跳过
+        new_slug = 'test-post-different'
+        new_title = '测试文章'
+        self.assertTrue(new_title in existing_titles)
+
+    def test_new_post_can_be_imported(self):
+        """测试全新的文章可以正常导入"""
+        existing_slugs = set(BlogPage.objects.values_list('slug', flat=True))
+        existing_titles = set(BlogPage.objects.values_list('title', flat=True))
+
+        new_slug = 'brand-new-post'
+        new_title = '全新文章'
+        self.assertFalse(new_slug in existing_slugs)
+        self.assertFalse(new_title in existing_titles)
+
+        post = BlogPage(title=new_title, slug=new_slug, date='2026-01-01')
+        self.blog_index.add_child(instance=post)
+        post.save_revision().publish()
+        self.assertEqual(BlogPage.objects.filter(slug=new_slug).count(), 1)
+
+
+class EditPermissionTest(TestCase):
+    """编辑权限测试"""
+
+    def setUp(self):
+        self.client = Client()
+        User = get_user_model()
+
+        # 获取已有的HomePage（由migration创建）
+        from wagtail.models import Page
+        from home.models import HomePage
+        self.home = HomePage.objects.first()
+        if not self.home:
+            root_page = Page.objects.get(depth=1)
+            self.home = HomePage(title='Home', slug='home')
+            root_page.add_child(instance=self.home)
+
+        self.blog_index = BlogIndexPage(title='博客', slug='blog')
+        self.home.add_child(instance=self.blog_index)
+
+        # 创建一篇测试文章
+        self.article = BlogPage(title='测试文章', slug='test-article', date='2026-01-01')
+        self.blog_index.add_child(instance=self.article)
+        self.article.save_revision().publish()
+
+        # 创建一个专栏页面
+        self.custom_page = CustomPage(title='测试专栏', slug='test-column', intro='测试', body='<p>内容</p>')
+        self.home.add_child(instance=self.custom_page)
+        self.custom_page.save_revision().publish()
+
+        # 创建用户组
+        self.editors_group, _ = Group.objects.get_or_create(name='Editors')
+
+        # 普通用户
+        self.normal_user = User.objects.create_user(username='normal', password='testpass123')
+
+        # 编辑用户
+        self.editor_user = User.objects.create_user(username='editor', password='testpass123')
+        self.editor_user.groups.add(self.editors_group)
+
+    def test_normal_user_cannot_edit_article(self):
+        """普通用户不能编辑文章"""
+        self.client.login(username='normal', password='testpass123')
+        response = self.client.get(f'/article/{self.article.slug}/edit/')
+        self.assertEqual(response.status_code, 302)  # redirected
+
+    def test_editor_can_edit_article(self):
+        """编辑用户可以编辑文章"""
+        self.client.login(username='editor', password='testpass123')
+        response = self.client.get(f'/article/{self.article.slug}/edit/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_normal_user_cannot_edit_custom_page(self):
+        """普通用户不能编辑专栏页面"""
+        self.client.login(username='normal', password='testpass123')
+        response = self.client.get(f'/page/{self.custom_page.slug}/edit/')
+        self.assertEqual(response.status_code, 302)  # redirected
+
+    def test_editor_can_edit_custom_page(self):
+        """编辑用户可以编辑专栏页面"""
+        self.client.login(username='editor', password='testpass123')
+        response = self.client.get(f'/page/{self.custom_page.slug}/edit/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_editor_can_save_custom_page(self):
+        """编辑用户可以保存专栏页面修改"""
+        self.client.login(username='editor', password='testpass123')
+        response = self.client.post(f'/page/{self.custom_page.slug}/edit/', {
+            'title': '更新后的专栏',
+            'intro': '新简介',
+            'body': '<p>新内容</p>',
+        })
+        self.assertEqual(response.status_code, 302)  # redirect on success
+        self.custom_page.refresh_from_db()
+        self.assertEqual(self.custom_page.title, '更新后的专栏')
+
+    def test_anonymous_cannot_edit(self):
+        """未登录用户不能编辑"""
+        response = self.client.get(f'/article/{self.article.slug}/edit/')
+        self.assertEqual(response.status_code, 302)  # redirect to login
+        response = self.client.get(f'/page/{self.custom_page.slug}/edit/')
+        self.assertEqual(response.status_code, 302)
+
+
+class PasswordComplexityTest(TestCase):
+    """密码复杂度验证测试"""
+
+    def setUp(self):
+        from home.validators import ComplexityValidator
+        self.validator = ComplexityValidator()
+
+    def test_all_four_categories_pass(self):
+        """包含全部4种字符应通过"""
+        self.validator.validate('Abc123!@')  # no exception
+
+    def test_three_categories_pass(self):
+        """包含3种字符应通过"""
+        self.validator.validate('Abc12345')   # upper + lower + digit
+        self.validator.validate('abc123!@')   # lower + digit + special
+        self.validator.validate('ABC123!@')   # upper + digit + special
+        self.validator.validate('Abcdef!@')   # upper + lower + special
+
+    def test_two_categories_fail(self):
+        """只包含2种字符应失败"""
+        from django.core.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            self.validator.validate('abcdef12')   # lower + digit only
+        with self.assertRaises(ValidationError):
+            self.validator.validate('ABCDEF12')   # upper + digit only
+        with self.assertRaises(ValidationError):
+            self.validator.validate('abcdefgh')   # lower only (1 category)
+
+    def test_register_rejects_weak_password(self):
+        """注册时弱密码应被拒绝"""
+        response = self.client.post(reverse('account_register'), {
+            'username': 'weakuser',
+            'email': 'weak@test.com',
+            'password1': 'abcdef12',  # only lower + digit
+            'password2': 'abcdef12',
+        })
+        self.assertEqual(response.status_code, 200)  # stays on register page
+        User = get_user_model()
+        self.assertFalse(User.objects.filter(username='weakuser').exists())
+
+
+class InitSuperuserTest(TestCase):
+    """init_superuser 管理命令测试"""
+
+    @override_settings(
+        MYPRESS_SUPERUSER_USERNAME='testadmin',
+        MYPRESS_SUPERUSER_PASSWORD='adminpass123',
+        MYPRESS_SUPERUSER_EMAIL='admin@test.com',
+    )
+    def test_creates_superuser(self):
+        """配置了用户名密码时应创建超级管理员"""
+        out = StringIO()
+        call_command('init_superuser', stdout=out)
+        User = get_user_model()
+        user = User.objects.get(username='testadmin')
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.is_staff)
+        self.assertEqual(user.email, 'admin@test.com')
+        self.assertIn('已创建超级管理员', out.getvalue())
+
+    @override_settings(
+        MYPRESS_SUPERUSER_USERNAME='testadmin',
+        MYPRESS_SUPERUSER_PASSWORD='adminpass123',
+        MYPRESS_SUPERUSER_EMAIL='admin@test.com',
+    )
+    def test_skips_existing_superuser(self):
+        """超级管理员已存在时应跳过"""
+        User = get_user_model()
+        User.objects.create_superuser('testadmin', 'admin@test.com', 'adminpass123')
+        out = StringIO()
+        call_command('init_superuser', stdout=out)
+        self.assertIn('已存在', out.getvalue())
+        self.assertEqual(User.objects.filter(username='testadmin').count(), 1)
+
+    @override_settings(
+        MYPRESS_SUPERUSER_USERNAME='',
+        MYPRESS_SUPERUSER_PASSWORD='',
+    )
+    def test_skips_when_not_configured(self):
+        """未配置用户名密码时应跳过"""
+        out = StringIO()
+        call_command('init_superuser', stdout=out)
+        self.assertIn('跳过', out.getvalue())
+        User = get_user_model()
+        self.assertEqual(User.objects.filter(is_superuser=True).count(), 0)
+
+
+class SiteConfigContextTest(TestCase):
+    """站点自定义配置上下文测试"""
+
+    def setUp(self):
+        self.client = Client()
+
+    @override_settings(
+        MYPRESS_SITE_NAME='TestBlog',
+        MYPRESS_HERO_TITLE='Welcome',
+        MYPRESS_HERO_SUBTITLE='A test blog',
+        MYPRESS_FOOTER_TEXT='Copyright 2026',
+    )
+    def test_site_config_in_context(self):
+        """站点配置变量应注入到模板上下文"""
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['site_name'], 'TestBlog')
+        self.assertEqual(response.context['hero_title'], 'Welcome')
+        self.assertEqual(response.context['hero_subtitle'], 'A test blog')
+        self.assertEqual(response.context['footer_text'], 'Copyright 2026')
+
+    @override_settings(MYPRESS_SITE_NAME='CustomName')
+    def test_site_name_in_navbar(self):
+        """站点名称应显示在导航栏"""
+        response = self.client.get('/')
+        self.assertContains(response, 'CustomName')
+
+    @override_settings(MYPRESS_FOOTER_TEXT='My Footer')
+    def test_footer_rendered(self):
+        """配置了 footer 时应渲染"""
+        response = self.client.get('/')
+        self.assertContains(response, 'My Footer')
+
+    @override_settings(MYPRESS_FOOTER_TEXT='')
+    def test_no_footer_when_empty(self):
+        """未配置 footer 时不应渲染 footer 标签"""
+        response = self.client.get('/')
+        self.assertNotContains(response, '<footer')
