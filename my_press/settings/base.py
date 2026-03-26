@@ -52,6 +52,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",  # i18n - must be after SessionMiddleware
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -75,6 +76,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.i18n",  # i18n context processor
             ],
         },
     },
@@ -86,13 +88,13 @@ WSGI_APPLICATION = "my_press.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/{{ docs_version }}/ref/settings/#databases
 
-# 数据库配置 - 根据环境变量选择数据库
+# Database configuration - selects database based on environment variable
 import os
 import re
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
-# 解析 DATABASE_URL 格式: postgres://user:pass@host:port/dbname
+# Parse DATABASE_URL format: postgres://user:pass@host:port/dbname
 if DATABASE_URL and "postgres" in DATABASE_URL:
     match = re.match(r'postgres://(?P<user>[^:]+):(?P<password>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)/(?P<name>.+)', DATABASE_URL)
     if match:
@@ -144,13 +146,31 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/{{ docs_version }}/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+# Supported languages
+from django.utils.translation import gettext_lazy as _
 
-TIME_ZONE = "UTC"
+LANGUAGES = [
+    ('en', _('English')),
+    ('zh-hans', _('Simplified Chinese')),
+]
 
-USE_I18N = True
+# Language code for this site
+LANGUAGE_CODE = 'en'  # Default language
 
-USE_TZ = True
+# Time zone
+TIME_ZONE = 'Asia/Shanghai'  # Change to your server's timezone
+
+USE_I18N = True  # Enable Django's translation system
+
+USE_L10N = True  # Enable localized formatting
+
+USE_TZ = True  # Enable timezone-aware datetimes
+
+
+# Translation directories
+LOCALE_PATHS = [
+    PROJECT_DIR / 'locale',
+]
 
 
 # Static files (CSS, JavaScript, Images)
@@ -184,7 +204,7 @@ STORAGES = {
 
 # Django sets a maximum of 1000 fields per form by default, but particularly complex page models
 # can exceed this limit within Wagtail's page editor.
-DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
+DATA_UPLOAD_MAX_NUMBER_OF_FIELDS = 10_000
 
 
 # Wagtail settings

@@ -1,6 +1,6 @@
 """
-自动初始化博客页面的管理命令
-在每次应用启动时运行，确保必要的页面存在
+Management command to automatically initialize blog pages.
+Runs on each app startup to ensure required pages exist.
 """
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -9,26 +9,26 @@ from home.models import HomePage, BlogIndexPage, CustomPage, BlogPage
 
 
 class Command(BaseCommand):
-    help = '初始化博客页面和数据'
+    help = 'Initialize blog pages and data'
 
     def handle(self, *args, **options):
-        self.stdout.write('开始初始化页面...')
+        self.stdout.write('Starting page initialization...')
         
-        # 1. 确保HomePage存在
+        # 1. Ensure HomePage exists
         home = HomePage.objects.first()
         if not home:
-            # 获取root page
+            # Get root page
             root = Page.objects.get(depth=1)
             home = HomePage(
                 title='Home',
                 slug='home',
             )
             root.add_child(instance=home)
-            self.stdout.write(self.style.SUCCESS('✓ 创建了HomePage'))
+            self.stdout.write(self.style.SUCCESS('✓ Created HomePage'))
         else:
-            self.stdout.write('HomePage已存在')
+            self.stdout.write('HomePage already exists')
         
-        # 2. 确保BlogIndexPage存在
+        # 2. Ensure BlogIndexPage exists
         blog_index = BlogIndexPage.objects.first()
         if not blog_index:
             blog_index = BlogIndexPage(
@@ -37,28 +37,29 @@ class Command(BaseCommand):
             )
             home.add_child(instance=blog_index)
             
-            # 保存版本并发布
+            # Save revision and publish
             revision = blog_index.save_revision()
             revision.publish()
-            self.stdout.write(self.style.SUCCESS('✓ 创建了BlogIndexPage'))
+            self.stdout.write(self.style.SUCCESS('✓ Created BlogIndexPage'))
         else:
-            self.stdout.write('BlogIndexPage已存在')
+            self.stdout.write('BlogIndexPage already exists')
         
-        # 3. 确保自定义页面存在
+        # 3. Ensure custom pages exist
         existing_slugs = ['essay', 'about', 'video', 'music', 'linux', 'jokes', 'files', 'concept', 'privacy']
         existing_custom = CustomPage.objects.filter(slug__in=existing_slugs)
         existing_slugs_in_db = list(existing_custom.values_list('slug', flat=True))
         
+        # Default page titles (can be translated later)
         page_titles = {
-            'essay': '日常随笔',
-            'about': '关于小孟',
-            'video': '视频剪辑',
-            'music': '云音乐歌单',
-            'linux': '学点Linux',
-            'jokes': '段子手段子',
-            'files': '文件管理',
-            'concept': '学点概念',
-            'privacy': '隐私政策',
+            'essay': 'Essays',
+            'about': 'About',
+            'video': 'Videos',
+            'music': 'Music',
+            'linux': 'Linux',
+            'jokes': 'Jokes',
+            'files': 'Files',
+            'concept': 'Concepts',
+            'privacy': 'Privacy Policy',
         }
         
         created_count = 0
@@ -67,26 +68,26 @@ class Command(BaseCommand):
                 custom_page = CustomPage(
                     title=title,
                     slug=slug,
-                    intro=f'{title}相关内容',
-                    body=f'<p>欢迎访问{title}页面</p>',
+                    intro=f'{title} content',
+                    body=f'<p>Welcome to {title}</p>',
                 )
                 home.add_child(instance=custom_page)
                 
-                # 保存版本并发布
+                # Save revision and publish
                 revision = custom_page.save_revision()
                 revision.publish()
                 
                 created_count += 1
-                self.stdout.write(f'✓ 创建了页面: {title} ({slug})')
+                self.stdout.write(f'✓ Created page: {title} ({slug})')
         
         if created_count > 0:
-            self.stdout.write(self.style.SUCCESS(f'共创建了 {created_count} 个自定义页面'))
+            self.stdout.write(self.style.SUCCESS(f'Created {created_count} custom pages'))
         else:
-            self.stdout.write('自定义页面已存在')
+            self.stdout.write('Custom pages already exist')
         
-        self.stdout.write(self.style.SUCCESS('页面初始化完成!'))
+        self.stdout.write(self.style.SUCCESS('Page initialization complete!'))
         
-        # 4. 导入文章（如果文章不存在）
+        # 4. Import posts (if they don't exist)
         import json
         import os
         from datetime import datetime
@@ -102,13 +103,13 @@ class Command(BaseCommand):
                 for post in posts_data:
                     slug = post.get('slug', '')
                     if slug and slug not in existing_slugs:
-                        # 处理日期格式
+                        # Parse date
                         date_value = post.get('date')
                         if date_value:
                             try:
-                                # 尝试解析日期
+                                # Try to parse date
                                 if isinstance(date_value, str):
-                                    # 去除时间部分，只保留日期
+                                    # Remove time part, keep only date
                                     date_str = date_value.split(' ')[0]
                                     article_date = datetime.strptime(date_str, '%Y-%m-%d').date()
                                 else:
@@ -130,10 +131,10 @@ class Command(BaseCommand):
                         revision = blog_page.save_revision()
                         revision.publish()
                         
-                        self.stdout.write(f'✓ 导入了文章: {post.get("title", "Untitled")}')
+                        self.stdout.write(f'✓ Imported post: {post.get("title", "Untitled")}')
                 
-                self.stdout.write(self.style.SUCCESS('文章导入完成!'))
+                self.stdout.write(self.style.SUCCESS('Post import complete!'))
             except Exception as e:
-                self.stdout.write(self.style.WARNING(f'导入文章时出错: {e}'))
+                self.stdout.write(self.style.WARNING(f'Error importing posts: {e}'))
         else:
-            self.stdout.write('未找到posts.json文件，跳过文章导入')
+            self.stdout.write('posts.json not found, skipping post import')

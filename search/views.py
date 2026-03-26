@@ -12,6 +12,7 @@ from wagtail.models import Page
 
 
 def search(request):
+    """Search view - searches live pages"""
     search_query = request.GET.get("query", None)
     page = request.GET.get("page", 1)
 
@@ -20,7 +21,6 @@ def search(request):
         search_results = Page.objects.live().search(search_query)
 
         # To log this query for use with the "Promoted search results" module:
-
         # query = Query.get(search_query)
         # query.add_hit()
 

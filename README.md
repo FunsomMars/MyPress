@@ -1,5 +1,7 @@
 # MyPress - 轻量化博客系统
 
+[English](./README-en.md) | 中文
+
 基于 Django + Wagtail CMS 构建的轻量化博客系统，支持 WordPress 数据无缝导入。
 
 ## 功能特性

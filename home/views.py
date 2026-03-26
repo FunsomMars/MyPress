@@ -11,24 +11,24 @@ from .models import BlogPage, BlogIndexPage, Comment, GroupApplication
 
 
 def index(request):
-    """首页"""
+    """Home page"""
     from home.models import BlogIndexPage
     
-    # 获取博客索引页的文章，按日期排序（最新优先）
+    # Get posts from blog index, sorted by date (newest first)
     blog_index = BlogIndexPage.objects.first()
     if blog_index:
         blog_posts = list(blog_index.get_children().specific().live())
-        # 按日期倒序排序
+        # Sort by date descending
         blog_posts.sort(key=lambda x: x.date, reverse=True)
-        # 首页最多显示6篇文章
+        # Show max 6 posts on homepage
         display_posts = blog_posts[:6]
-        # 是否显示"查看更多"按钮
+        # Show "view more" button flag
         show_more = len(blog_posts) > 6
     else:
         display_posts = []
         show_more = False
     
-    # 获取博客专栏链接
+    # Get blog section URL
     blog_url = blog_index.url if blog_index else '/blog/'
     
     return render(request, 'home/index.html', {
@@ -39,7 +39,7 @@ def index(request):
 
 
 def user_login(request):
-    """用户登录"""
+    """User login"""
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -47,24 +47,24 @@ def user_login(request):
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
-            # 检查是否验证了邮箱
+            # Check if email is verified
             from home.models import EmailVerification
             if EmailVerification.objects.filter(user=user).exists():
-                messages.error(request, '请先完成邮箱验证后再登录。验证邮件已发送到您的邮箱。')
+                messages.error(request, 'Please verify your email before logging in. Verification email has been sent.')
                 return render(request, 'home/login.html')
             
             login(request, user)
-            messages.success(request, f'欢迎回来, {user.username}!')
+            messages.success(request, f'Welcome back, {user.username}!')
             next_url = request.GET.get('next', '/')
             return redirect(next_url)
         else:
-            messages.error(request, '用户名或密码错误')
+            messages.error(request, 'Invalid username or password')
     
     return render(request, 'home/login.html')
 
 
 def user_register(request):
-    """用户注册"""
+    """User registration"""
     from django.contrib.auth import get_user_model
     from home.models import EmailVerification
     from django.core.mail import send_mail
@@ -76,56 +76,56 @@ def user_register(request):
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
         
-        # 验证
+        # Validate passwords match
         if password1 != password2:
-            messages.error(request, '两次密码不一致')
+            messages.error(request, 'Passwords do not match')
             return render(request, 'home/register.html')
         
         if len(password1) < 6:
-            messages.error(request, '密码长度至少6位')
+            messages.error(request, 'Password must be at least 6 characters')
             return render(request, 'home/register.html')
         
         User = get_user_model()
         
-        # 检查用户名是否已存在
+        # Check if username exists
         if User.objects.filter(username=username).exists():
-            messages.error(request, f'用户名 "{username}" 已存在，请直接登录或使用其他用户名')
+            messages.error(request, f'Username "{username}" already exists. Please login or use a different username.')
             return render(request, 'home/register.html')
         
-        # 检查邮箱是否已存在
+        # Check if email exists
         if User.objects.filter(email=email).exists():
-            messages.error(request, f'邮箱 "{email}" 已被注册，请直接登录或使用其他邮箱')
+            messages.error(request, f'Email "{email}" is already registered. Please login or use a different email.')
             return render(request, 'home/register.html')
         
-        # 创建用户（未激活）
+        # Create user (inactive until email verified)
         user = User.objects.create_user(
             username=username,
             email=email,
             password=password1,
-            is_active=True  # 保持活跃，但需要邮箱验证
+            is_active=True  # Keep active, but requires email verification
         )
         
-        # 创建验证记录
+        # Create verification record
         verification = EmailVerification.create_for_user(user)
         
-        # 发送验证邮件
+        # Send verification email
         site_url = 'www.mspace.top'
         verification_url = f"https://{site_url}/accounts/verify/{verification.verification_code}/"
         
         try:
             send_mail(
-                subject='【MyPress】邮箱验证',
-                message=f'您好 {username}，\n\n感谢注册 MyPress！\n\n请点击以下链接完成邮箱验证：\n{verification_url}\n\n链接有效期为24小时。\n\n如果这不是您的操作，请忽略此邮件。',
+                subject='[MyPress] Email Verification',
+                message=f'Hi {username},\n\nThank you for registering with MyPress!\n\nPlease click the link below to verify your email:\n{verification_url}\n\nThis link expires in 24 hours.\n\nIf this was not you, please ignore this email.',
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
                 fail_silently=False,
             )
-            messages.success(request, '注册成功！请前往邮箱查收验证邮件，完成验证后即可登录。')
+            messages.success(request, 'Registration successful! Please check your email for the verification link.')
         except Exception as e:
-            messages.warning(request, f'注册成功，但验证邮件发送失败。请联系管理员。')
-            # 开发环境直接显示验证链接
+            messages.warning(request, f'Registration successful, but failed to send verification email. Please contact admin.')
+            # Show verification link in dev mode
             if settings.DEBUG:
-                messages.info(request, f'验证链接（开发模式）：{verification_url}')
+                messages.info(request, f'Verification link (dev mode): {verification_url}')
         
         return render(request, 'home/register_success.html', {'email': email})
     
@@ -133,50 +133,50 @@ def user_register(request):
 
 
 def user_logout(request):
-    """用户登出"""
+    """User logout"""
     logout(request)
-    messages.info(request, '您已成功登出')
+    messages.info(request, 'You have been logged out successfully')
     return redirect('/')
 
 
 def verify_email(request, code):
-    """邮箱验证"""
+    """Email verification"""
     from home.models import EmailVerification
     
     verification = EmailVerification.objects.filter(verification_code=code).first()
     
     if not verification:
-        messages.error(request, '验证链接无效')
+        messages.error(request, 'Invalid verification link')
         return redirect('/')
     
     if not verification.is_valid():
-        messages.error(request, '验证链接已过期，请重新注册')
-        # 删除过期验证记录
+        messages.error(request, 'Verification link expired. Please register again.')
+        # Delete expired verification record
         verification.delete()
         return redirect('/')
     
-    # 验证成功
+    # Verification successful
     user = verification.user
     verification.delete()
     
-    # 自动登录
+    # Auto login
     login(request, user)
     
-    # 渲染验证成功页面（带倒计时跳转）
+    # Render verification success page (with countdown redirect)
     return render(request, 'home/verify_success.html', {'user': user})
 
 
 def can_manage_articles(user):
-    """检查用户是否有管理文章的权限"""
+    """Check if user has article management permission"""
     return user.is_authenticated and (user.is_superuser or user.groups.filter(name__in=['Editors', 'Moderators', 'Administrators']).exists())
 
 
 @login_required
 def create_article(request):
-    """创建文章"""
-    # 检查权限
+    """Create article"""
+    # Check permission
     if not can_manage_articles(request.user):
-        messages.error(request, '您没有创建文章的权限，请先加入编辑及以上用户组')
+        messages.error(request, 'You do not have permission to create articles. Please join the Editor or higher user group first.')
         return redirect('/accounts/profile/')
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -184,13 +184,13 @@ def create_article(request):
         body = request.POST.get('body')
         date = request.POST.get('date')
         
-        # 获取博客索引页
+        # Get blog index page
         blog_index = BlogIndexPage.objects.first()
         if not blog_index:
-            messages.error(request, '博客索引页不存在')
+            messages.error(request, 'Blog index page does not exist')
             return redirect('/')
         
-        # 生成slug
+        # Generate slug
         from django.utils.text import slugify
         base_slug = slugify(title)
         slug = base_slug
@@ -199,7 +199,7 @@ def create_article(request):
             slug = f"{base_slug}-{counter}"
             counter += 1
         
-        # 创建文章
+        # Create article
         article = BlogPage(
             title=title,
             slug=slug,
@@ -217,11 +217,11 @@ def create_article(request):
         
         blog_index.add_child(instance=article)
         
-        # 保存版本并发布
+        # Save revision and publish
         revision = article.save_revision()
         revision.publish()
         
-        messages.success(request, '文章创建成功!')
+        messages.success(request, 'Article created successfully!')
         return redirect(f'/blog/{slug}/')
     
     return render(request, 'home/create_article.html')
@@ -229,12 +229,12 @@ def create_article(request):
 
 @login_required
 def edit_article(request, slug):
-    """编辑文章"""
+    """Edit article"""
     article = get_object_or_404(BlogPage, slug=slug)
     
-    # 检查权限 - 作者或超级用户可以编辑
+    # Check permission - author or superuser can edit
     if request.user != article.owner and not request.user.is_superuser:
-        messages.error(request, '您没有权限编辑这篇文章')
+        messages.error(request, 'You do not have permission to edit this article')
         return redirect(f'/blog/{slug}/')
     
     if request.method == 'POST':
@@ -253,11 +253,11 @@ def edit_article(request, slug):
             except:
                 pass
         
-        # 保存版本并发布
+        # Save revision and publish
         revision = article.save_revision()
         revision.publish()
         
-        messages.success(request, '文章更新成功!')
+        messages.success(request, 'Article updated successfully!')
         return redirect(f'/blog/{slug}/')
     
     return render(request, 'home/edit_article.html', {'article': article})
@@ -265,17 +265,17 @@ def edit_article(request, slug):
 
 @login_required
 def delete_article(request, slug):
-    """删除文章"""
+    """Delete article"""
     article = get_object_or_404(BlogPage, slug=slug)
     
-    # 检查权限 - 作者或超级用户可以删除
+    # Check permission - author or superuser can delete
     if request.user != article.owner and not request.user.is_superuser:
-        messages.error(request, '您没有权限删除这篇文章')
+        messages.error(request, 'You do not have permission to delete this article')
         return redirect(f'/blog/{slug}/')
     
     if request.method == 'POST':
         article.delete()
-        messages.success(request, '文章已删除')
+        messages.success(request, 'Article deleted')
         return redirect('/blog/')
     
     return render(request, 'home/delete_article.html', {'article': article})
@@ -283,13 +283,13 @@ def delete_article(request, slug):
 
 @require_http_methods(["POST"])
 def add_comment(request, slug):
-    """添加评论"""
+    """Add comment"""
     article = get_object_or_404(BlogPage, slug=slug)
     
     content = request.POST.get('content', '').strip()
     
     if not content:
-        return JsonResponse({'success': False, 'error': '评论内容不能为空'})
+        return JsonResponse({'success': False, 'error': 'Comment content cannot be empty'})
     
     if request.user.is_authenticated:
         author = request.user
@@ -301,18 +301,18 @@ def add_comment(request, slug):
         author_email = request.POST.get('author_email', '').strip()
         
         if not author_name:
-            return JsonResponse({'success': False, 'error': '请填写用户名'})
+            return JsonResponse({'success': False, 'error': 'Please enter a username'})
         if not author_email:
-            return JsonResponse({'success': False, 'error': '请填写邮箱'})
+            return JsonResponse({'success': False, 'error': 'Please enter an email'})
     
-    # 创建评论
+    # Create comment
     comment = Comment.objects.create(
         blog_page=article,
         author=author,
         author_name=author_name,
         author_email=author_email,
         content=content,
-        is_approved=True  # 直接通过审核
+        is_approved=True  # Auto-approve
     )
     
     return JsonResponse({
@@ -327,9 +327,9 @@ def add_comment(request, slug):
 
 @login_required
 def manage_comments(request):
-    """管理评论（仅管理员）"""
+    """Manage comments (admin only)"""
     if not request.user.is_superuser:
-        messages.error(request, '只有管理员可以管理评论')
+        messages.error(request, 'Only administrators can manage comments')
         return redirect('/')
     
     comments = Comment.objects.all().order_by('-created_at')
@@ -339,24 +339,24 @@ def manage_comments(request):
 
 @login_required
 def delete_comment(request, comment_id):
-    """删除评论（仅管理员）"""
+    """Delete comment (admin only)"""
     if not request.user.is_superuser:
-        messages.error(request, '只有管理员可以删除评论')
+        messages.error(request, 'Only administrators can delete comments')
         return redirect('/')
     
     comment = get_object_or_404(Comment, id=comment_id)
     comment.delete()
-    messages.success(request, '评论已删除')
+    messages.success(request, 'Comment deleted')
     
     return redirect('/manage/comments/')
 
 
 def user_profile(request):
-    """用户个人中心"""
+    """User profile page"""
     if not request.user.is_authenticated:
         return redirect('/accounts/login/')
     
-    # 获取用户创建的文章（分页）
+    # Get user's articles (paginated)
     from wagtail.models import Page
     from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
     
@@ -365,7 +365,7 @@ def user_profile(request):
         owner=request.user
     ).specific()
     
-    paginator = Paginator(articles_query, 10)  # 每页10篇
+    paginator = Paginator(articles_query, 10)  # 10 posts per page
     page = request.GET.get('page', 1)
     try:
         user_articles = paginator.page(page)
@@ -374,19 +374,19 @@ def user_profile(request):
     except EmptyPage:
         user_articles = paginator.page(paginator.num_pages)
     
-    # 获取用户所属组
+    # Get user's groups
     user_groups = request.user.groups.all()
     
-    # 获取用户的申请
+    # Get user's applications
     my_applications = GroupApplication.objects.filter(user=request.user).order_by('-created_at')
     
-    # 获取待审批的申请（仅超级管理员可见）
+    # Get pending applications (superadmin only)
     all_applications = []
     if request.user.is_superuser:
-        # 超级管理员可以看到所有申请
+        # Super admin can see all applications
         all_applications = GroupApplication.objects.all().order_by('-created_at')[:30]
     
-    # 检查用户是否有管理文章权限
+    # Check if user can manage articles
     can_manage = can_manage_articles(request.user)
     
     return render(request, 'home/profile.html', {
@@ -400,19 +400,19 @@ def user_profile(request):
 
 @login_required
 def join_group(request, group_name):
-    """用户申请加入用户组"""
-    # 只有特定组可以申请加入
+    """User applies to join user group"""
+    # Only specific groups can be applied for
     allowed_groups = ['Editors', 'Moderators', 'Administrators']
     if group_name not in allowed_groups:
-        messages.error(request, '无效的用户组')
+        messages.error(request, 'Invalid user group')
         return redirect('/accounts/profile/')
     
-    # 超级管理员不能申请
+    # Super admin cannot apply
     if request.user.is_superuser:
-        messages.error(request, '超级管理员无需申请')
+        messages.error(request, 'Super admin does not need to apply')
         return redirect('/accounts/profile/')
     
-    # 检查是否已有待审批的申请
+    # Check if there's already a pending application
     existing_application = GroupApplication.objects.filter(
         user=request.user,
         requested_group=group_name,
@@ -420,29 +420,29 @@ def join_group(request, group_name):
     ).first()
     
     if existing_application:
-        messages.info(request, '您已有待审批的申请，请耐心等待')
+        messages.info(request, 'You already have a pending application. Please wait for approval.')
         return redirect('/accounts/profile/')
     
-    # 检查权限：不能向下申请
-    # 版主不能申请编辑
+    # Permission check: cannot apply for lower privileges
+    # Moderator cannot apply for Editor
     if group_name == 'Editors' and request.user.groups.filter(name='Moderators').exists():
-        messages.error(request, '版主不能申请编辑权限')
+        messages.error(request, 'Moderators cannot apply for Editor privileges')
         return redirect('/accounts/profile/')
     
-    # 管理员不能申请版主/编辑
+    # Admin cannot apply for Moderator/Editor
     if group_name in ['Editors', 'Moderators'] and request.user.groups.filter(name='Administrators').exists():
-        messages.error(request, '管理员不能申请低级权限')
+        messages.error(request, 'Administrators cannot apply for lower privileges')
         return redirect('/accounts/profile/')
     
-    # 创建申请记录
+    # Create application record
     application = GroupApplication.objects.create(
         user=request.user,
         requested_group=group_name,
         status='pending'
     )
     
-    group_display = '编辑' if group_name == 'Editors' else ('版主' if group_name == 'Moderators' else '管理员')
-    messages.success(request, f'您的{group_display}权限申请已提交，请等待审批！')
+    group_display = 'Editor' if group_name == 'Editors' else ('Moderator' if group_name == 'Moderators' else 'Administrator')
+    messages.success(request, f'Your {group_display} application has been submitted. Please wait for approval!')
     
     return redirect('/accounts/profile/')
 
@@ -450,28 +450,28 @@ def join_group(request, group_name):
 @login_required
 @require_http_methods(["POST"])
 def approve_application(request, application_id):
-    """审批用户组申请"""
-    # 检查权限：只有超级管理员可以审批
+    """Approve user group application"""
+    # Check permission: only super admin can approve
     if not request.user.is_superuser:
-        messages.error(request, '只有超级管理员可以审批申请')
+        messages.error(request, 'Only super administrators can approve applications')
         return redirect('/accounts/profile/')
     
     application = get_object_or_404(GroupApplication, id=application_id, status='pending')
     
-    # 审批通过
+    # Approve application
     application.status = 'approved'
     application.reviewed_by = request.user
     application.save()
     
-    # 先清除用户的所有组，确保只能有一个组
+    # Clear all user's groups first to ensure only one group
     application.user.groups.clear()
     
-    # 将用户加入对应的用户组
+    # Add user to the requested group
     group = Group.objects.get(name=application.requested_group)
     application.user.groups.add(group)
     
-    group_display = '编辑' if application.requested_group == 'Editors' else ('版主' if application.requested_group == 'Moderators' else '管理员')
-    messages.success(request, f'已批准 {application.user.username} 的{group_display}权限申请')
+    group_display = 'Editor' if application.requested_group == 'Editors' else ('Moderator' if application.requested_group == 'Moderators' else 'Administrator')
+    messages.success(request, f'Approved {application.user.username}\'s {group_display} application')
     
     return redirect('/accounts/profile/')
 
@@ -479,21 +479,21 @@ def approve_application(request, application_id):
 @login_required
 @require_http_methods(["POST"])
 def reject_application(request, application_id):
-    """拒绝用户组申请"""
-    # 检查权限：只有超级管理员可以审批
+    """Reject user group application"""
+    # Check permission: only super admin can reject
     if not request.user.is_superuser:
-        messages.error(request, '只有超级管理员可以审批申请')
+        messages.error(request, 'Only super administrators can reject applications')
         return redirect('/accounts/profile/')
     
     application = get_object_or_404(GroupApplication, id=application_id, status='pending')
     
-    # 拒绝申请
+    # Reject application
     application.status = 'rejected'
     application.reviewed_by = request.user
     application.save()
     
-    group_display = '编辑' if application.requested_group == 'Editors' else ('版主' if application.requested_group == 'Moderators' else '管理员')
-    messages.success(request, f'已拒绝 {application.user.username} 的{group_display}权限申请')
+    group_display = 'Editor' if application.requested_group == 'Editors' else ('Moderator' if application.requested_group == 'Moderators' else 'Administrator')
+    messages.success(request, f'Rejected {application.user.username}\'s {group_display} application')
     
     return redirect('/accounts/profile/')
 
@@ -501,32 +501,32 @@ def reject_application(request, application_id):
 @login_required
 @require_http_methods(["POST"])
 def cancel_application(request, application_id):
-    """用户取消申请"""
+    """User cancels their application"""
     application = get_object_or_404(GroupApplication, id=application_id, user=request.user, status='pending')
     
     application.delete()
     
-    messages.success(request, '申请已取消')
+    messages.success(request, 'Application cancelled')
     
     return redirect('/accounts/profile/')
 
 
-# ==================== 用户管理（仅超级管理员） ====================
+# ==================== User Management (Super Admin Only) ====================
 
 @login_required
 def user_management(request):
-    """用户管理页面（仅超级管理员）"""
+    """User management page (super admin only)"""
     if not request.user.is_superuser:
-        messages.error(request, '只有超级管理员可以访问用户管理')
+        messages.error(request, 'Only super administrators can access user management')
         return redirect('/accounts/profile/')
     
     from django.contrib.auth import get_user_model
     User = get_user_model()
     
-    # 获取所有用户
+    # Get all users
     users = User.objects.all().order_by('-date_joined')
     
-    # 获取所有用户组
+    # Get all user groups
     all_groups = Group.objects.all()
     
     return render(request, 'home/user_management.html', {
@@ -539,9 +539,9 @@ def user_management(request):
 @login_required
 @require_http_methods(["POST"])
 def edit_user(request, user_id):
-    """编辑用户信息（仅超级管理员）"""
+    """Edit user info (super admin only)"""
     if not request.user.is_superuser:
-        messages.error(request, '只有超级管理员可以编辑用户')
+        messages.error(request, 'Only super administrators can edit users')
         return redirect('/accounts/profile/')
     
     from django.contrib.auth import get_user_model
@@ -549,43 +549,43 @@ def edit_user(request, user_id):
     
     target_user = get_object_or_404(User, id=user_id)
     
-    # 不能修改超级管理员（除非是自己）
+    # Cannot edit other super admins (unless it's yourself)
     if target_user.is_superuser and target_user != request.user:
-        messages.error(request, '不能修改其他超级管理员的信息')
+        messages.error(request, 'Cannot edit other super administrators')
         return redirect('/accounts/profile/')
     
-    # 获取提交的表单数据
+    # Get submitted form data
     email = request.POST.get('email', '').strip()
     username = request.POST.get('username', '').strip()
     new_password = request.POST.get('new_password', '').strip()
     group_id = request.POST.get('group', '')
     
-    # 验证用户名唯一性
+    # Validate username uniqueness
     if username != target_user.username and User.objects.filter(username=username).exists():
-        messages.error(request, f'用户名 "{username}" 已被使用')
+        messages.error(request, f'Username "{username}" is already taken')
         return redirect('/accounts/profile/users/')
     
-    # 验证邮箱唯一性
+    # Validate email uniqueness
     if email != target_user.email and User.objects.filter(email=email).exists():
-        messages.error(request, f'邮箱 "{email}" 已被使用')
+        messages.error(request, f'Email "{email}" is already in use')
         return redirect('/accounts/profile/users/')
     
-    # 更新用户信息
+    # Update user info
     target_user.email = email
     target_user.username = username
     
     if new_password:
         target_user.set_password(new_password)
-        messages.info(request, '密码已更新')
+        messages.info(request, 'Password has been updated')
     
-    # 更新用户组
+    # Update user groups
     target_user.groups.clear()
     if group_id:
         group = Group.objects.get(id=group_id)
         target_user.groups.add(group)
     
     target_user.save()
-    messages.success(request, f'用户 "{username}" 信息已更新')
+    messages.success(request, f'User "{username}" info updated')
     
     return redirect('/accounts/profile/users/')
 
@@ -593,9 +593,9 @@ def edit_user(request, user_id):
 @login_required
 @require_http_methods(["POST"])
 def delete_user(request, user_id):
-    """删除用户（仅超级管理员）"""
+    """Delete user (super admin only)"""
     if not request.user.is_superuser:
-        messages.error(request, '只有超级管理员可以删除用户')
+        messages.error(request, 'Only super administrators can delete users')
         return redirect('/accounts/profile/')
     
     from django.contrib.auth import get_user_model
@@ -603,18 +603,18 @@ def delete_user(request, user_id):
     
     target_user = get_object_or_404(User, id=user_id)
     
-    # 不能删除自己
+    # Cannot delete yourself
     if target_user == request.user:
-        messages.error(request, '不能删除自己的账户')
+        messages.error(request, 'Cannot delete your own account')
         return redirect('/accounts/profile/users/')
     
-    # 不能删除其他超级管理员
+    # Cannot delete other super admins
     if target_user.is_superuser:
-        messages.error(request, '不能删除超级管理员账户')
+        messages.error(request, 'Cannot delete super administrator accounts')
         return redirect('/accounts/profile/users/')
     
     username = target_user.username
     target_user.delete()
-    messages.success(request, f'用户 "{username}" 已删除')
+    messages.success(request, f'User "{username}" deleted')
     
     return redirect('/accounts/profile/users/')

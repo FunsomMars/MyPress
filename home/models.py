@@ -10,7 +10,7 @@ import uuid
 
 
 class EmailVerification(models.Model):
-    """邮箱验证模型"""
+    """Email verification model"""
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -21,26 +21,26 @@ class EmailVerification(models.Model):
     expires_at = models.DateTimeField()
     
     class Meta:
-        verbose_name = "邮箱验证"
-        verbose_name_plural = "邮箱验证"
+        verbose_name = "Email Verification"
+        verbose_name_plural = "Email Verifications"
     
     def __str__(self):
-        return f"{self.user.email} - 验证"
+        return f"{self.user.email} - Verification"
     
     def is_valid(self):
-        """检查验证码是否有效"""
+        """Check if verification code is valid"""
         return timezone.now() < self.expires_at
     
     @staticmethod
     def create_for_user(user):
-        """为用户创建验证记录"""
+        """Create verification record for user"""
         from django.utils import timezone
         from datetime import timedelta
         
-        # 删除旧的验证记录
+        # Delete old verification records
         EmailVerification.objects.filter(user=user).delete()
         
-        # 创建新的验证记录，24小时有效
+        # Create new verification record, valid for 24 hours
         verification = EmailVerification.objects.create(
             user=user,
             verification_code=uuid.uuid4().hex,
@@ -50,11 +50,11 @@ class EmailVerification(models.Model):
 
 
 class GroupApplication(models.Model):
-    """用户组申请模型"""
+    """User group application model"""
     STATUS_CHOICES = [
-        ('pending', '待审批'),
-        ('approved', '已批准'),
-        ('rejected', '已拒绝'),
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
     ]
     
     user = models.ForeignKey(
@@ -73,11 +73,11 @@ class GroupApplication(models.Model):
         blank=True,
         related_name='reviewed_applications'
     )
-    review_note = models.TextField(blank=True)  # 审批备注
+    review_note = models.TextField(blank=True)  # Review notes
     
     class Meta:
-        verbose_name = "用户组申请"
-        verbose_name_plural = "用户组申请"
+        verbose_name = "Group Application"
+        verbose_name_plural = "Group Applications"
         ordering = ['-created_at']
     
     def __str__(self):
@@ -93,15 +93,15 @@ class HomePage(Page):
     ]
     
     def get_context(self, request, *args, **kwargs):
-        """获取博客文章列表上下文"""
+        """Get blog article list context"""
         context = super().get_context(request, *args, **kwargs)
-        # 获取博客索引页面的文章
+        # Get blog index page
         from home.models import BlogIndexPage
         blog_index = BlogIndexPage.objects.first()
         if blog_index:
-            # 获取所有文章
+            # Get all posts
             posts = list(blog_index.get_children().specific().live())
-            # 按日期倒序排列
+            # Sort by date descending
             def sort_key(post):
                 if hasattr(post, 'date') and post.date:
                     return post.date
@@ -109,7 +109,7 @@ class HomePage(Page):
                     return post.first_published_at
                 return post.pk
             posts.sort(key=sort_key, reverse=True)
-            # 取前6篇（最新的6篇）
+            # Get latest 6 posts
             context['blog_posts'] = posts[:6]
         else:
             context['blog_posts'] = []
@@ -117,7 +117,7 @@ class HomePage(Page):
 
 
 class BlogIndexPage(Page):
-    """博客索引页面 - 显示文章列表"""
+    """Blog index page - displays article list"""
     intro = RichTextField(blank=True, help_text="Introduction text for the blog")
     
     content_panels = Page.content_panels + [
@@ -125,28 +125,28 @@ class BlogIndexPage(Page):
     ]
     
     def get_context(self, request, *args, **kwargs):
-        """获取博客文章列表上下文（分页 + 归档筛选）"""
+        """Get blog article list context (pagination + archive filtering)"""
         context = super().get_context(request, *args, **kwargs)
         
-        # 获取筛选参数
+        # Get filter parameters
         filter_year = request.GET.get('year')
         filter_month = request.GET.get('month')
         filter_day = request.GET.get('day')
         
-        # 获取所有文章
+        # Get all posts
         all_posts = list(self.get_children().specific().live())
         
-        # 按日期倒序排序（先按date排序，date为空时用first_published_at）
+        # Sort by date descending (use date first, fallback to first_published_at)
         def sort_key(post):
             if hasattr(post, 'date') and post.date:
                 return post.date
             elif hasattr(post, 'first_published_at') and post.first_published_at:
                 return post.first_published_at
-            return post.pk  # 如果都没有，使用pk作为后备
+            return post.pk  # Fallback to pk if neither exists
         
         all_posts.sort(key=sort_key, reverse=True)
         
-        # 如果有筛选参数，筛选文章
+        # Apply filters if present
         if filter_year:
             year = int(filter_year)
             if filter_month:
@@ -159,26 +159,26 @@ class BlogIndexPage(Page):
             else:
                 all_posts = [p for p in all_posts if self._get_post_date(p).year == year]
         
-        # 获取分页参数
+        # Get pagination parameters
         page = int(request.GET.get('page', 1))
         per_page = 10
         
-        # 计算总数
+        # Calculate totals
         total_count = len(all_posts)
         total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
         
-        # 确保页码有效
+        # Ensure valid page number
         if page < 1:
             page = 1
         if page > total_pages and total_pages > 0:
             page = total_pages
         
-        # 获取当前页的文章
+        # Get current page posts
         start = (page - 1) * per_page
         end = start + per_page
         posts = all_posts[start:end]
         
-        # 生成页码范围（显示最多10页）
+        # Generate page range (max 10 pages shown)
         page_range = []
         if total_pages <= 10:
             page_range = list(range(1, total_pages + 1))
@@ -202,8 +202,8 @@ class BlogIndexPage(Page):
         context['filter_month'] = int(filter_month) if filter_month else None
         context['filter_day'] = int(filter_day) if filter_day else None
         
-        # 生成文章归档（年份 -> 月份 -> 文章列表）
-        # 重新获取所有文章用于归档（不包含筛选）
+        # Generate post archive (year -> month -> posts list)
+        # Re-fetch all posts for archive (without filter)
         all_posts_full = list(self.get_children().specific().live())
         all_posts_full.sort(key=sort_key, reverse=True)
         
@@ -216,7 +216,7 @@ class BlogIndexPage(Page):
                 key = (post_date.year, post_date.month)
                 archive[key].append(post)
         
-        # 转换为有序字典 {year: {month: [posts]}}
+        # Convert to ordered dict {year: {month: [posts]}}
         archive_sorted = {}
         for year_month, posts in archive.items():
             year, month = year_month
@@ -224,13 +224,13 @@ class BlogIndexPage(Page):
                 archive_sorted[year] = {}
             archive_sorted[year][month] = posts
         
-        # 按年份和月份排序
+        # Sort by year and month
         for year in archive_sorted:
             archive_sorted[year] = dict(sorted(archive_sorted[year].items(), reverse=True))
         
         context['archive'] = dict(sorted(archive_sorted.items(), reverse=True))
         
-        # 生成简化的归档列表 [(year, [(month, count), ...]), ...]
+        # Generate simplified archive list [(year, [(month, count), ...]), ...]
         archive_list = []
         all_years = sorted(archive_sorted.keys(), reverse=True)
         for year in all_years:
@@ -241,14 +241,14 @@ class BlogIndexPage(Page):
             archive_list.append((year, months_list))
         context['archive_list'] = archive_list
         
-        # 简化归档列表：当前筛选年份月份 [(month, count), ...]
+        # Simplified archive: current filtered year/month [(month, count), ...]
         current_year = int(filter_year) if filter_year else None
         
-        # 如果没有筛选，使用默认年份
+        # Default to latest year if no filter
         if not current_year and all_years:
             current_year = max(all_years)
         
-        # 生成当前年份的月份列表
+        # Generate months list for current year
         months_with_posts = []
         if current_year and current_year in archive_sorted:
             for month in sorted(archive_sorted[current_year].keys(), reverse=True):
@@ -257,19 +257,19 @@ class BlogIndexPage(Page):
         
         context['months_with_posts'] = months_with_posts
         
-        # 箭头逻辑：
-        # - has_prev_year: 是否可以切换到更早的年份（当前年份 > 最小年份）
-        # - has_next_year: 是否可以切换到更近的年份（当前年份 < 最大年份）
+        # Arrow logic:
+        # - has_prev_year: can switch to earlier year (current year > min year)
+        # - has_next_year: can switch to later year (current year < max year)
         if not filter_year and all_years:
             current_year = max(all_years)
-            # 最近年份：不能往前（has_prev），可以往后（has_next）
+            # Most recent year: cannot go back (has_prev), can go forward (has_next)
             has_prev_year = current_year > min(all_years)
             has_next_year = current_year < max(all_years)
         else:
             has_prev_year = current_year and current_year > min(all_years) if all_years else False
             has_next_year = current_year and current_year < max(all_years) if all_years else False
         
-        # 默认显示最近一年
+        # Default to most recent year
         if not filter_year and all_years:
             default_year = max(all_years)
             context['default_year'] = default_year
@@ -285,7 +285,7 @@ class BlogIndexPage(Page):
         return context
     
     def _get_post_date(self, post):
-        """获取文章发布日期"""
+        """Get post publication date"""
         if hasattr(post, 'date') and post.date:
             return post.date
         elif hasattr(post, 'first_published_at') and post.first_published_at:
@@ -294,10 +294,10 @@ class BlogIndexPage(Page):
 
 
 class BlogPage(Page):
-    """博客文章页面"""
-    date = models.DateField("发布日期", null=True, blank=True)
-    intro = models.CharField("摘要", max_length=250, blank=True)
-    body = RichTextField("文章内容", blank=True)
+    """Blog article page"""
+    date = models.DateField("Publication Date", null=True, blank=True)
+    intro = models.CharField("Summary", max_length=250, blank=True)
+    body = RichTextField("Content", blank=True)
     
     content_panels = Page.content_panels + [
         FieldPanel('date'),
@@ -308,22 +308,22 @@ class BlogPage(Page):
     template = 'home/blog_page.html'
     
     def get_context(self, request, *args, **kwargs):
-        """获取博客文章上下文"""
+        """Get blog article context"""
         context = super().get_context(request, *args, **kwargs)
         context['comments'] = self.get_comments()
         return context
     
     def get_comments(self):
-        """获取文章的评论"""
+        """Get approved comments for this article"""
         return self.comments.filter(is_approved=True).order_by('-created_at')
     
     def get_comment_count(self):
-        """获取评论数量"""
+        """Get comment count"""
         return self.comments.filter(is_approved=True).count()
 
 
 class Comment(models.Model):
-    """文章评论模型"""
+    """Article comment model"""
     blog_page = models.ForeignKey(
         BlogPage, 
         on_delete=models.CASCADE, 
@@ -336,26 +336,26 @@ class Comment(models.Model):
         blank=True,
         related_name='comments'
     )
-    author_name = models.CharField("用户名", max_length=100)
-    author_email = models.EmailField("邮箱")
-    content = models.TextField("评论内容")
-    created_at = models.DateTimeField("创建时间", auto_now_add=True)
-    updated_at = models.DateTimeField("更新时间", auto_now=True)
-    is_approved = models.BooleanField("是否通过审核", default=True)
+    author_name = models.CharField("Username", max_length=100)
+    author_email = models.EmailField("Email")
+    content = models.TextField("Comment Content")
+    created_at = models.DateTimeField("Created At", auto_now_add=True)
+    updated_at = models.DateTimeField("Updated At", auto_now=True)
+    is_approved = models.BooleanField("Approved", default=True)
     
     class Meta:
         ordering = ['-created_at']
-        verbose_name = "评论"
-        verbose_name_plural = "评论"
+        verbose_name = "Comment"
+        verbose_name_plural = "Comments"
     
     def __str__(self):
         return f"{self.author_name} - {self.blog_page.title[:20]}"
 
 
 class CustomPage(Page):
-    """自定义页面 - 用于导入WordPress的其他栏目页面"""
-    intro = models.CharField("摘要", max_length=250, blank=True)
-    body = RichTextField("页面内容", blank=True)
+    """Custom page - for imported WordPress pages"""
+    intro = models.CharField("Summary", max_length=250, blank=True)
+    body = RichTextField("Page Content", blank=True)
     
     content_panels = Page.content_panels + [
         FieldPanel('intro'),
@@ -365,5 +365,5 @@ class CustomPage(Page):
     template = 'home/custom_page.html'
     
     class Meta:
-        verbose_name = "自定义页面"
-        verbose_name_plural = "自定义页面"
+        verbose_name = "Custom Page"
+        verbose_name_plural = "Custom Pages"
